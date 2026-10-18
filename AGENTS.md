@@ -8,7 +8,9 @@ Edit rules here only. Tool-specific files (`CLAUDE.md`, `GEMINI.md`, `.cursor/ru
 
 Book My Show: a movie and event ticket booking app.
 
-Status: boilerplate. Read-only list APIs for cities, cinemas, and shows.
+Status: browse APIs (cities, cinemas, screens, shows, movies), login (email, phone OTP, Google), admin APIs to add movies, screens, and shows, seat locks (Redis), booking with Razorpay test payments, tickets with one-time check-in, booking history, cancel and refund, face-value resale, waitlist, crowd meter, show filters, verified reviews, last-minute deals, price alerts, seat view photos, friends and friends activity, gift tickets, group polls, split payment, AI mood search, and the weekend planner.
+
+Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Working rules
 
@@ -33,10 +35,14 @@ Status: boilerplate. Read-only list APIs for cities, cinemas, and shows.
 | Framework | Spring Boot 4 |
 | Build | Maven (wrapper in `backend/`) |
 | Database | PostgreSQL, Spring Data JPA, Flyway migrations |
+| Auth | Spring Security, JWT (HS256) via OAuth2 resource server, BCrypt |
+| AI | Anthropic Java SDK, Claude Opus 5.5 by default (`CLAUDE_MODEL`), keyword fallback |
 | API docs | springdoc OpenAPI (Swagger UI) |
 | Tests | JUnit 5, MockMvc |
+| Cache and locks | Redis (seat locks, with Lua scripts) |
 | Local infra | Docker Compose |
-| Later | Redis (cache, seat lock), Elasticsearch (search) |
+| Frontend | Next.js (planned) |
+| Later | Elasticsearch (search) |
 
 ## Project structure
 
@@ -44,10 +50,10 @@ Status: boilerplate. Read-only list APIs for cities, cinemas, and shows.
 backend/src/main/java/com/bookmyshow/
 ├── BookMyShowApplication.java   # starts the app, imports Bootstrap only
 ├── bootstrap/                   # startup setup, one concern per file
-├── security/                    # JWT (later)
-├── integrations/                # third-party services (later)
-├── common/                      # error, response, cache, util
-└── modules/                     # business features (city, cinema, show)
+├── security/                    # JWT issuing, roles, current user
+├── integrations/                # third-party services (sms, google, payment, notify, ai)
+├── common/                      # error, response, lock (job lock), util
+└── modules/                     # business features (city, cinema, show, movie, screen, user, booking, review, waitlist, alert, friend, poll, discover)
 ```
 
 Structure rules:
@@ -68,7 +74,7 @@ Structure rules:
 
 - Each service has its own folder in `docker/<service>/` with its own `compose.yaml`.
 - The root `compose.yaml` only lists `include:` entries.
-- Core services (postgres) have no profile. Optional ones use profiles (`app` for the backend in Docker, later `search`, `mongo`, `proxy`).
+- Core services (postgres, redis) have no profile. Optional ones use profiles (`app` for the backend in Docker, later `search`, `mongo`, `proxy`).
 - Pin image versions. Never use `latest`.
 - Every service has a healthcheck. Use `depends_on` with `condition: service_healthy`.
 - Store data in named volumes.
@@ -88,8 +94,8 @@ Run from the repo root unless noted.
 
 | Task | Command |
 |---|---|
-| First time setup | `cp .env.example .env`, then set `DB_PASSWORD` |
-| Start database | `docker compose up -d` |
+| First time setup | `cp .env.example .env`, then set `DB_PASSWORD`, `REDIS_PASSWORD`, and `JWT_SECRET` |
+| Start database and Redis | `docker compose up -d` |
 | Backend in Docker | `docker compose --profile app up -d --build` |
 | Format check and tests | `./scripts/ci/check.sh` |
 | Run backend | `cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=local` |

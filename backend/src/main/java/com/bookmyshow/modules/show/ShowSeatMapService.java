@@ -1,0 +1,137 @@
+package com.bookmyshow.modules.show;
+
+import com.bookmyshow.common.error.NotFoundException;
+import com.bookmyshow.modules.screen.ScreenService;
+import com.bookmyshow.modules.screen.ScreenTypes.LayoutResponse;
+import com.bookmyshow.modules.screen.ScreenTypes.SeatResponse;
+import com.bookmyshow.modules.show.ShowTypes.CategoryPrice;
+import com.bookmyshow.modules.show.ShowTypes.DealInfo;
+import com.bookmyshow.modules.show.ShowTypes.SeatMapResponse;
+import com.bookmyshow.modules.show.ShowTypes.SeatMapRow;
+import com.bookmyshow.modules.show.ShowTypes.SeatMapSeat;
+import com.bookmyshow.modules.show.ShowTypes.SeatStatus;
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Seat map of one show: the screen layout with this show's prices and each seat's status. */
+@Service
+@Transactional(readOnly = true)
+public class ShowSeatMapService {
+
+    private final ShowRepository showRepository;
+    private final ShowPriceRepository showPriceRepository;
+    private final ScreenService screenService;
+    private final SeatLockStore seatLockStore;
+    private final ShowSeatBookingService seatBookingService;
+    private final Clock clock;
+
+    public ShowSeatMapService(
+            ShowRepository showRepository,
+            ShowPriceRepository showPriceRepository,
+            ScreenService screenService,
+            SeatLockStore seatLockStore,
+            ShowSeatBookingService seatBookingService,
+            Clock clock) {
+        this.showRepository = showRepository;
+        this.showPriceRepository = showPriceRepository;
+        this.screenService = screenService;
+        this.seatLockStore = seatLockStore;
+        this.seatBookingService = seatBookingService;
+        this.clock = clock;
+    }
+
+    /**
+     * A seat is UNAVAILABLE if its category has no price, BOOKED if sold, LOCKED if someone holds it in checkout,
+     * else AVAILABLE. Prices include a last-minute deal when one is running (see {@link ShowPricing}).
+     */
+    public SeatMapResponse getSeatMap(long showId) {
+        Show show = showRepository
+                .findById(showId)
+                .orElseThrow(() -> new NotFoundException("Show " + showId + " not found"));
+        if (show.getScreenId() == null) {
+            throw new NotFoundException("Show " + showId + " has no seat map, because it is not on a screen");
+        }
+        LayoutResponse layout = screenService.getLayout(show.getScreenId());
+        Map<String, BigDecimal> prices = showPriceRepository.findAllByShowId(showId).stream()
+                .collect(Collectors.toMap(ShowPrice::getCategory, ShowPrice::getPrice));
+
+        List<Long> seatIds = layout.rows().stream()
+                .flatMap(row -> row.seats().stream())
+                .map(SeatResponse::id)
+                .toList();
+        Set<Long> sold = seatBookingService.soldSeats(showId);
+        Set<Long> locked = seatLockStore.lockedSeats(showId, seatIds);
+
+        // The deal depends on how full the show is, counting only seats for sale.
+        List<SeatResponse> forSale = layout.rows().stream()
+                .flatMap(row -> row.seats().stream())
+                .filter(seat -> prices.containsKey(seat.category()))
+                .toList();
+        long taken = forSale.stream()
+                .filter(seat -> sold.contains(seat.id()) || locked.contains(seat.id()))
+                .count();
+        int percentFull = forSale.isEmpty() ? 0 : (int) (taken * 100 / forSale.size());
+        DealInfo deal = ShowPricing.dealFor(show, LocalDateTime.now(clock), percentFull);
+        Map<String, BigDecimal> current = new HashMap<>();
+        prices.forEach((category, price) -> current.put(category, ShowPricing.apply(price, deal)));
+
+        List<SeatMapRow> rows = layout.rows().stream()
+                .map(row -> new SeatMapRow(
+                        row.label(),
+                        row.seats().stream()
+                                .map(seat -> toSeat(seat, current, sold, locked))
+                                .toList()))
+                .toList();
+        List<CategoryPrice> categoryPrices = prices.entrySet().stream()
+                .map(entry -> new CategoryPrice(entry.getKey(), current.get(entry.getKey()), entry.getValue()))
+                .sorted(Comparator.comparing(CategoryPrice::price))
+                .toList();
+
+        return new SeatMapResponse(
+                show.getId(),
+                show.getMovieId(),
+                show.getMovieName(),
+                show.getShowDate(),
+                show.getStartTime(),
+                layout.screenId(),
+                layout.name(),
+                categoryPrices,
+                rows,
+                deal);
+    }
+
+    /** Used by price alerts. The cheapest seat a user could book right now, deal included. Empty if none is free. */
+    public Optional<BigDecimal> lowestAvailablePrice(long showId) {
+        return getSeatMap(showId).rows().stream()
+                .flatMap(row -> row.seats().stream())
+                .filter(seat -> SeatStatus.AVAILABLE.equals(seat.status()))
+                .map(SeatMapSeat::price)
+                .min(Comparator.naturalOrder());
+    }
+
+    private static SeatMapSeat toSeat(
+            SeatResponse seat, Map<String, BigDecimal> prices, Set<Long> sold, Set<Long> locked) {
+        BigDecimal price = prices.get(seat.category());
+        String status;
+        if (price == null) {
+            status = SeatStatus.UNAVAILABLE;
+        } else if (sold.contains(seat.id())) {
+            status = SeatStatus.BOOKED;
+        } else if (locked.contains(seat.id())) {
+            status = SeatStatus.LOCKED;
+        } else {
+            status = SeatStatus.AVAILABLE;
+        }
+        return new SeatMapSeat(seat.id(), seat.number(), seat.category(), price, status, seat.wheelchair());
+    }
+}

@@ -10,7 +10,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-/** A movie show at a cinema. A movies table comes later, so the name is stored here for now. */
+/**
+ * A movie show at a cinema. movieId links to the movie catalog and is null until every show is linked. movieName stays
+ * until then. screenId is null for shows created before screens existed.
+ */
 @Entity
 @Table(name = "shows")
 public class Show {
@@ -21,6 +24,12 @@ public class Show {
 
     @Column(name = "cinema_id", nullable = false)
     private Long cinemaId;
+
+    @Column(name = "movie_id")
+    private Long movieId;
+
+    @Column(name = "screen_id")
+    private Long screenId;
 
     @Column(name = "movie_name", nullable = false, length = 200)
     private String movieName;
@@ -34,14 +43,64 @@ public class Show {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    /** Calm show: no kids' crowd, quieter audience. Set by the theatre. */
+    @Column(nullable = false)
+    private Boolean quiet = false;
+
+    /** Lower sound, lights partly on. */
+    @Column(name = "sensory_friendly", nullable = false)
+    private Boolean sensoryFriendly = false;
+
+    @Column(nullable = false)
+    private Boolean subtitles = false;
+
+    /** Last-minute deals allowed. On unless the theatre turns it off. */
+    @Column(name = "deals_enabled", nullable = false)
+    private Boolean dealsEnabled = true;
+
     protected Show() {}
 
-    public Show(Long cinemaId, String movieName, LocalDate showDate, LocalTime startTime, BigDecimal price) {
+    public Show(
+            Long cinemaId,
+            Long screenId,
+            Long movieId,
+            String movieName,
+            LocalDate showDate,
+            LocalTime startTime,
+            BigDecimal price) {
         this.cinemaId = cinemaId;
+        this.screenId = screenId;
+        this.movieId = movieId;
         this.movieName = movieName;
         this.showDate = showDate;
         this.startTime = startTime;
         this.price = price;
+    }
+
+    void setFeatures(boolean quiet, boolean sensoryFriendly, boolean subtitles) {
+        this.quiet = quiet;
+        this.sensoryFriendly = sensoryFriendly;
+        this.subtitles = subtitles;
+    }
+
+    void setDealsEnabled(boolean dealsEnabled) {
+        this.dealsEnabled = dealsEnabled;
+    }
+
+    public boolean isDealsEnabled() {
+        return !Boolean.FALSE.equals(dealsEnabled);
+    }
+
+    public boolean isQuiet() {
+        return Boolean.TRUE.equals(quiet);
+    }
+
+    public boolean isSensoryFriendly() {
+        return Boolean.TRUE.equals(sensoryFriendly);
+    }
+
+    public boolean hasSubtitles() {
+        return Boolean.TRUE.equals(subtitles);
     }
 
     public Long getId() {
@@ -50,6 +109,14 @@ public class Show {
 
     public Long getCinemaId() {
         return cinemaId;
+    }
+
+    public Long getScreenId() {
+        return screenId;
+    }
+
+    public Long getMovieId() {
+        return movieId;
     }
 
     public String getMovieName() {

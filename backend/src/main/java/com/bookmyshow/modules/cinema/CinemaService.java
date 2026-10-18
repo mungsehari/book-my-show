@@ -26,6 +26,21 @@ public class CinemaService {
                 .toList();
     }
 
+    /** Used by other modules to get the cinemas in a city. Fails if the city does not exist. */
+    public List<Long> listIdsByCity(long cityId) {
+        cityService.ensureExists(cityId);
+        return cinemaRepository.findAllByCityIdOrderByNameAsc(cityId).stream()
+                .map(Cinema::getId)
+                .toList();
+    }
+
+    public CinemaResponse getCinema(long cinemaId) {
+        return cinemaRepository
+                .findById(cinemaId)
+                .map(CinemaResponse::from)
+                .orElseThrow(() -> new NotFoundException("Cinema " + cinemaId + " not found"));
+    }
+
     /** Used by other modules to check a cinema before using its ID. */
     public void ensureExists(long cinemaId) {
         if (!cinemaRepository.existsById(cinemaId)) {

@@ -6,5 +6,7 @@ name: book-my-show
 include:
   - path: docker/postgres/compose.yaml
     env_file: .env
+  - path: docker/redis/compose.yaml
+    env_file: .env
   - path: docker/backend/compose.yaml
     env_file: .env
