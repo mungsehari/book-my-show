@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.bookmyshow.bootstrap.WithSecurityConfig;
 import com.bookmyshow.common.error.NotFoundException;
 import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
 import com.bookmyshow.modules.show.ShowTypes.ShowResponse;
@@ -20,6 +21,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+@WithSecurityConfig
 @WebMvcTest(ShowController.class)
 class ShowControllerTest {
 
@@ -35,7 +37,14 @@ class ShowControllerTest {
     void listsShowsForDate() throws Exception {
         when(showService.listByCinema(10L, DATE))
                 .thenReturn(List.of(new ShowResponse(
-                        100L, 10L, 5L, "The Last Monsoon", DATE, LocalTime.of(18, 30), new BigDecimal("320.00"))));
+                        100L,
+                        10L,
+                        null,
+                        5L,
+                        "The Last Monsoon",
+                        DATE,
+                        LocalTime.of(18, 30),
+                        new BigDecimal("320.00"))));
 
         mockMvc.perform(get("/api/v1/cinemas/10/shows").param("date", "2026-10-17"))
                 .andExpect(status().isOk())

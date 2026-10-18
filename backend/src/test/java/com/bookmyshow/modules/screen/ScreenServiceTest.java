@@ -2,16 +2,29 @@ package com.bookmyshow.modules.screen;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.bookmyshow.common.error.BadRequestException;
+import com.bookmyshow.common.error.ConflictException;
+import com.bookmyshow.common.error.ForbiddenException;
 import com.bookmyshow.common.error.NotFoundException;
+import com.bookmyshow.modules.cinema.CinemaAccessService;
 import com.bookmyshow.modules.cinema.CinemaService;
+import com.bookmyshow.modules.screen.ScreenTypes.CreateScreenRequest;
 import com.bookmyshow.modules.screen.ScreenTypes.LayoutResponse;
+import com.bookmyshow.modules.screen.ScreenTypes.RowRequest;
+import com.bookmyshow.modules.screen.ScreenTypes.RowResponse;
 import com.bookmyshow.modules.screen.ScreenTypes.ScreenResponse;
 import com.bookmyshow.modules.screen.SeatRepository.SeatCount;
+import com.bookmyshow.security.CurrentUser;
+import com.bookmyshow.security.Roles;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +36,7 @@ class ScreenServiceTest {
     private ScreenRepository screenRepository;
     private SeatRepository seatRepository;
     private CinemaService cinemaService;
+    private CinemaAccessService cinemaAccessService;
     private ScreenService screenService;
 
     @BeforeEach
@@ -30,7 +44,8 @@ class ScreenServiceTest {
         screenRepository = mock(ScreenRepository.class);
         seatRepository = mock(SeatRepository.class);
         cinemaService = mock(CinemaService.class);
-        screenService = new ScreenService(screenRepository, seatRepository, cinemaService);
+        cinemaAccessService = mock(CinemaAccessService.class);
+        screenService = new ScreenService(screenRepository, seatRepository, cinemaService, cinemaAccessService);
     }
 
     @Test
@@ -98,6 +113,62 @@ class ScreenServiceTest {
         assertThatThrownBy(() -> screenService.ensureExists(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("Screen 99 not found");
+    }
+
+    @Test
+    void createsScreenWithSeatsPerRow() {
+        CurrentUser user = new CurrentUser(2L, Roles.THEATRE_ADMIN);
+        when(screenRepository.save(any(Screen.class))).thenAnswer(call -> {
+            Screen saved = call.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 3L);
+            return saved;
+        });
+        when(seatRepository.saveAll(anyList())).thenAnswer(call -> call.getArgument(0));
+
+        LayoutResponse layout = screenService.create(
+                10L,
+                new CreateScreenRequest(
+                        "Screen 3", List.of(new RowRequest("B", 2, "PREMIUM"), new RowRequest("A", 3, "REGULAR"))),
+                user);
+
+        verify(cinemaAccessService).ensureCanManage(user, 10L);
+        assertThat(layout.screenId()).isEqualTo(3L);
+        assertThat(layout.seatCount()).isEqualTo(5);
+        assertThat(layout.rows()).extracting(RowResponse::label).containsExactly("A", "B");
+        assertThat(layout.rows().get(1).seats()).extracting("category").containsOnly("PREMIUM");
+    }
+
+    @Test
+    void rejectsRepeatedRow() {
+        CreateScreenRequest request = new CreateScreenRequest(
+                "Screen 3", List.of(new RowRequest("A", 2, "REGULAR"), new RowRequest("A", 3, "REGULAR")));
+
+        assertThatThrownBy(() -> screenService.create(10L, request, new CurrentUser(1L, Roles.ADMIN)))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Row A is listed more than once");
+        verify(screenRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsDuplicateScreenName() {
+        when(screenRepository.existsByCinemaIdAndNameIgnoreCase(10L, "Screen 1"))
+                .thenReturn(true);
+        CreateScreenRequest request = new CreateScreenRequest("Screen 1", List.of(new RowRequest("A", 2, "REGULAR")));
+
+        assertThatThrownBy(() -> screenService.create(10L, request, new CurrentUser(1L, Roles.ADMIN)))
+                .isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void stopsWhenUserCannotManageCinema() {
+        CurrentUser user = new CurrentUser(2L, Roles.THEATRE_ADMIN);
+        doThrow(new ForbiddenException("You cannot manage cinema 10"))
+                .when(cinemaAccessService)
+                .ensureCanManage(user, 10L);
+        CreateScreenRequest request = new CreateScreenRequest("Screen 3", List.of(new RowRequest("A", 2, "REGULAR")));
+
+        assertThatThrownBy(() -> screenService.create(10L, request, user)).isInstanceOf(ForbiddenException.class);
+        verify(screenRepository, never()).save(any());
     }
 
     private static Screen screen(long id, String name) {

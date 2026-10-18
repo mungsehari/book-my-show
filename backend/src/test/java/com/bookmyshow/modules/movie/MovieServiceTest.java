@@ -2,13 +2,16 @@ package com.bookmyshow.modules.movie;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.bookmyshow.common.error.ConflictException;
 import com.bookmyshow.common.error.NotFoundException;
+import com.bookmyshow.modules.movie.MovieTypes.CreateMovieRequest;
 import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
 import java.time.LocalDate;
 import java.util.List;
@@ -88,6 +91,27 @@ class MovieServiceTest {
         assertThatThrownBy(() -> movieService.ensureExists(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("Movie 99 not found");
+    }
+
+    @Test
+    void createsMovie() {
+        when(movieRepository.save(any(Movie.class))).thenAnswer(call -> call.getArgument(0));
+
+        MovieResponse created = movieService.create(new CreateMovieRequest(
+                " Sky Riders ", "Plot.", "English", "Action", 128, "UA", LocalDate.of(2026, 10, 2), null));
+
+        assertThat(created.title()).isEqualTo("Sky Riders");
+        assertThat(created.durationMinutes()).isEqualTo(128);
+    }
+
+    @Test
+    void rejectsDuplicateMovie() {
+        when(movieRepository.existsByTitleIgnoreCaseAndLanguageIgnoreCase("Sky Riders", "English"))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> movieService.create(new CreateMovieRequest(
+                        "Sky Riders", "Plot.", "English", "Action", 128, "UA", LocalDate.of(2026, 10, 2), null)))
+                .isInstanceOf(ConflictException.class);
     }
 
     private static Movie movie(String title, String language) {

@@ -11,4 +11,6 @@ interface MovieRepository extends JpaRepository<Movie, Long> {
     List<Movie> findAllByLanguageIgnoreCaseOrderByTitleAsc(String language);
 
     List<Movie> findAllByIdInOrderByTitleAsc(Collection<Long> ids);
+
+    boolean existsByTitleIgnoreCaseAndLanguageIgnoreCase(String title, String language);
 }

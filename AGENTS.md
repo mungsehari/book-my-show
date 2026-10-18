@@ -8,7 +8,7 @@ Edit rules here only. Tool-specific files (`CLAUDE.md`, `GEMINI.md`, `.cursor/ru
 
 Book My Show: a movie and event ticket booking app.
 
-Status: boilerplate. Read-only list APIs for cities, cinemas, shows, and movies.
+Status: browse APIs (cities, cinemas, screens, shows, movies), login (email, phone OTP, Google), and admin APIs to add movies, screens, and shows.
 
 Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -35,6 +35,7 @@ Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 | Framework | Spring Boot 4 |
 | Build | Maven (wrapper in `backend/`) |
 | Database | PostgreSQL, Spring Data JPA, Flyway migrations |
+| Auth | Spring Security, JWT (HS256) via OAuth2 resource server, BCrypt |
 | API docs | springdoc OpenAPI (Swagger UI) |
 | Tests | JUnit 5, MockMvc |
 | Local infra | Docker Compose |
@@ -47,10 +48,10 @@ Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 backend/src/main/java/com/bookmyshow/
 ├── BookMyShowApplication.java   # starts the app, imports Bootstrap only
 ├── bootstrap/                   # startup setup, one concern per file
-├── security/                    # JWT (later)
-├── integrations/                # third-party services (later)
+├── security/                    # JWT issuing, roles, current user
+├── integrations/                # third-party services (sms, google)
 ├── common/                      # error, response, cache, util
-└── modules/                     # business features (city, cinema, show, movie, screen)
+└── modules/                     # business features (city, cinema, show, movie, screen, user)
 ```
 
 Structure rules:
@@ -91,7 +92,7 @@ Run from the repo root unless noted.
 
 | Task | Command |
 |---|---|
-| First time setup | `cp .env.example .env`, then set `DB_PASSWORD` |
+| First time setup | `cp .env.example .env`, then set `DB_PASSWORD` and `JWT_SECRET` |
 | Start database | `docker compose up -d` |
 | Backend in Docker | `docker compose --profile app up -d --build` |
 | Format check and tests | `./scripts/ci/check.sh` |

@@ -19,6 +19,8 @@ import org.springframework.context.annotation.Import;
     DatabaseConfig.class,
     LoggingConfig.class,
     SecurityHeadersConfig.class,
+    JwtConfig.class,
+    SecurityConfig.class,
     TelemetryConfig.class,
     OpenApiConfig.class
 })

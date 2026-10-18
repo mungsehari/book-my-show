@@ -17,6 +17,28 @@ Backend boilerplate with read-only list APIs.
 | `GET /api/v1/movies?language=Hindi` | All movies, or movies in one language |
 | `GET /api/v1/movies/{movieId}` | One movie |
 
+Auth (no token needed, except `me`):
+
+| API | Does |
+|---|---|
+| `POST /api/v1/auth/register` | Sign up with name, email, password. Returns an access token. |
+| `POST /api/v1/auth/login` | Log in with email and password |
+| `POST /api/v1/auth/otp/request` | Send a 6-digit code to a phone (`+91...`). In dev the code is in the backend log. |
+| `POST /api/v1/auth/otp/verify` | Log in with the phone code. A new phone gets a new account. |
+| `POST /api/v1/auth/google` | Log in with a Google ID token from the frontend |
+| `GET /api/v1/auth/me` | The logged-in user |
+
+Admin (send `Authorization: Bearer <token>`):
+
+| API | Who |
+|---|---|
+| `POST /api/v1/admin/movies` | ADMIN |
+| `POST /api/v1/admin/cinemas/{cinemaId}/admins` | ADMIN. Makes the user a theatre admin of that cinema. |
+| `POST /api/v1/admin/cinemas/{cinemaId}/screens` | ADMIN, or a theatre admin of that cinema |
+| `POST /api/v1/admin/screens/{screenId}/shows` | ADMIN, or a theatre admin of that cinema. Rejects overlapping shows. |
+
+The first admin: put your email in `ADMIN_EMAILS` in `.env`, then sign up with it.
+
 Stack: Java 21, Spring Boot 4, PostgreSQL, Flyway, Docker Compose. See `AGENTS.md` for structure and rules.
 
 ## Planned features
@@ -40,7 +62,7 @@ After cloning, enable the shared git hooks:
 ./.agents/setup.sh
 ```
 
-Create your env file and set `DB_PASSWORD`:
+Create your env file and set `DB_PASSWORD` and `JWT_SECRET`:
 
 ```bash
 cp .env.example .env

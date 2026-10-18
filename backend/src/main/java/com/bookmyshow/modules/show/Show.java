@@ -12,7 +12,7 @@ import java.time.LocalTime;
 
 /**
  * A movie show at a cinema. movieId links to the movie catalog and is null until every show is linked. movieName stays
- * until then.
+ * until then. screenId is null for shows created before screens existed.
  */
 @Entity
 @Table(name = "shows")
@@ -27,6 +27,9 @@ public class Show {
 
     @Column(name = "movie_id")
     private Long movieId;
+
+    @Column(name = "screen_id")
+    private Long screenId;
 
     @Column(name = "movie_name", nullable = false, length = 200)
     private String movieName;
@@ -43,8 +46,15 @@ public class Show {
     protected Show() {}
 
     public Show(
-            Long cinemaId, Long movieId, String movieName, LocalDate showDate, LocalTime startTime, BigDecimal price) {
+            Long cinemaId,
+            Long screenId,
+            Long movieId,
+            String movieName,
+            LocalDate showDate,
+            LocalTime startTime,
+            BigDecimal price) {
         this.cinemaId = cinemaId;
+        this.screenId = screenId;
         this.movieId = movieId;
         this.movieName = movieName;
         this.showDate = showDate;
@@ -58,6 +68,10 @@ public class Show {
 
     public Long getCinemaId() {
         return cinemaId;
+    }
+
+    public Long getScreenId() {
+        return screenId;
     }
 
     public Long getMovieId() {

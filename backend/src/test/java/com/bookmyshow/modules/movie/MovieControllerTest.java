@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.bookmyshow.bootstrap.WithSecurityConfig;
 import com.bookmyshow.common.error.NotFoundException;
 import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+@WithSecurityConfig
 @WebMvcTest(MovieController.class)
 class MovieControllerTest {
 

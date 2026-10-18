@@ -1,6 +1,8 @@
 package com.bookmyshow.modules.movie;
 
+import com.bookmyshow.common.error.ConflictException;
 import com.bookmyshow.common.error.NotFoundException;
+import com.bookmyshow.modules.movie.MovieTypes.CreateMovieRequest;
 import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
 import java.util.Collection;
 import java.util.List;
@@ -33,6 +35,25 @@ public class MovieService {
         return movieRepository.findAllByIdInOrderByTitleAsc(movieIds).stream()
                 .map(MovieResponse::from)
                 .toList();
+    }
+
+    @Transactional
+    public MovieResponse create(CreateMovieRequest request) {
+        String title = request.title().strip();
+        String language = request.language().strip();
+        if (movieRepository.existsByTitleIgnoreCaseAndLanguageIgnoreCase(title, language)) {
+            throw new ConflictException("Movie '" + title + "' in " + language + " already exists");
+        }
+        Movie movie = movieRepository.save(new Movie(
+                title,
+                request.description().strip(),
+                language,
+                request.genre().strip(),
+                request.durationMinutes(),
+                request.certificate(),
+                request.releaseDate(),
+                request.posterUrl()));
+        return MovieResponse.from(movie);
     }
 
     public MovieResponse getMovie(long movieId) {
