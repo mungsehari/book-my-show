@@ -19,7 +19,10 @@ public final class ShowTypes {
 
     private ShowTypes() {}
 
-    /** Prices by seat category, for example {"REGULAR": 200, "PREMIUM": 300}. Every category on the screen needs one. */
+    /**
+     * Prices by seat category, for example {"REGULAR": 200, "PREMIUM": 300}. Every category on the screen needs one.
+     * quiet, sensoryFriendly, and subtitles are optional and default to false.
+     */
     public record CreateShowRequest(
             @NotNull @Positive Long movieId,
             @NotNull LocalDate showDate,
@@ -29,7 +32,17 @@ public final class ShowTypes {
             Map<
                             @NotNull @Pattern(regexp = "^(REGULAR|PREMIUM|RECLINER)$") String,
                             @NotNull @DecimalMin("0.00") @Digits(integer = 8, fraction = 2) BigDecimal>
-                    prices) {}
+                    prices,
+
+            Boolean quiet,
+            Boolean sensoryFriendly,
+            Boolean subtitles) {}
+
+    /** Optional filters for a cinema's shows. A null or false filter is not applied. */
+    public record ShowFilters(boolean quiet, boolean sensoryFriendly, boolean subtitles, boolean wheelchair) {
+
+        public static final ShowFilters NONE = new ShowFilters(false, false, false, false);
+    }
 
     /** price is the lowest category price, shown as "from" in listings. */
     public record ShowResponse(
@@ -40,7 +53,10 @@ public final class ShowTypes {
             String movieName,
             LocalDate showDate,
             LocalTime startTime,
-            BigDecimal price) {
+            BigDecimal price,
+            boolean quiet,
+            boolean sensoryFriendly,
+            boolean subtitles) {
 
         static ShowResponse from(Show show) {
             return new ShowResponse(
@@ -51,14 +67,25 @@ public final class ShowTypes {
                     show.getMovieName(),
                     show.getShowDate(),
                     show.getStartTime(),
-                    show.getPrice());
+                    show.getPrice(),
+                    show.isQuiet(),
+                    show.isSensoryFriendly(),
+                    show.hasSubtitles());
         }
     }
 
     public record CategoryPrice(String category, BigDecimal price) {}
 
+    /**
+     * How full a show is right now. Counts only seats for sale. percentFull counts sold and held seats. level is LOW
+     * (under 40%), MEDIUM (under 75%), HIGH (under 100%), or HOUSEFULL.
+     */
+    public record CrowdResponse(
+            Long showId, int totalSeats, int sold, int held, int available, int percentFull, String level) {}
+
     /** status is one of {@link SeatStatus}. price is null when the show has no price for the seat's category. */
-    public record SeatMapSeat(Long id, Integer number, String category, BigDecimal price, String status) {}
+    public record SeatMapSeat(
+            Long id, Integer number, String category, BigDecimal price, String status, boolean wheelchair) {}
 
     public record SeatMapRow(String label, List<SeatMapSeat> seats) {}
 
@@ -94,7 +121,8 @@ public final class ShowTypes {
             String movieName,
             LocalDate showDate,
             LocalTime startTime,
-            List<String> seatLabels) {}
+            List<String> seatLabels,
+            Long movieId) {}
 
     /** Seat states on a show's seat map. */
     public static final class SeatStatus {

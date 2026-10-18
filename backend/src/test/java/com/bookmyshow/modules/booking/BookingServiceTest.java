@@ -207,6 +207,26 @@ class BookingServiceTest {
                 .isTrue();
     }
 
+    @Test
+    void watchedMeansShowStartedOrCheckedIn() {
+        // The clock is 2026-10-18 05:00. The booking's show is 2026-10-18 18:00.
+        Booking later = confirmedBooking();
+        when(bookingRepository.findByUserIdAndMovieIdAndStatusAndShowDateLessThanEqual(
+                        7L, 2L, BookingStatus.CONFIRMED, LocalDate.of(2026, 10, 18)))
+                .thenReturn(List.of(later));
+
+        assertThat(bookingService.findWatchedBooking(7L, 2L)).isEmpty();
+
+        later.checkIn(2L, Instant.parse("2026-10-18T04:50:00Z"));
+        assertThat(bookingService.findWatchedBooking(7L, 2L)).contains(9L);
+    }
+
+    private static Booking confirmedBooking() {
+        Booking booking = pending();
+        booking.confirm("pay_1", Instant.parse("2026-10-17T05:00:00Z"));
+        return booking;
+    }
+
     static ActiveLock lock(List<Long> seatIds, String total) {
         return new ActiveLock(
                 LOCK_ID,
@@ -219,7 +239,8 @@ class BookingServiceTest {
                 "Sky Riders",
                 LocalDate.of(2026, 10, 18),
                 LocalTime.of(18, 0),
-                seatIds.stream().map(id -> "A" + id).toList());
+                seatIds.stream().map(id -> "A" + id).toList(),
+                2L);
     }
 
     static Booking pending() {

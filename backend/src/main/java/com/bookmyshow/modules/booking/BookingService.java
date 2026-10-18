@@ -16,7 +16,9 @@ import com.bookmyshow.modules.show.ShowTypes.ActiveLock;
 import com.bookmyshow.security.CurrentUser;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -126,6 +128,23 @@ public class BookingService {
                     user.id(), today, HISTORY_STATUSES, PageRequest.of(page, size, newest));
         }
         return PageResponse.of(result, BookingResponse::from);
+    }
+
+    /**
+     * Used by the review module. The ID of a paid booking that proves the user watched the movie: checked in at the
+     * entry, or the show already started. Empty if there is none.
+     */
+    public Optional<Long> findWatchedBooking(long userId, long movieId) {
+        LocalDateTime now = LocalDateTime.now(clock);
+        return bookingRepository
+                .findByUserIdAndMovieIdAndStatusAndShowDateLessThanEqual(
+                        userId, movieId, BookingStatus.CONFIRMED, now.toLocalDate())
+                .stream()
+                .filter(booking -> booking.getCheckedInAt() != null
+                        || !LocalDateTime.of(booking.getShowDate(), booking.getStartTime())
+                                .isAfter(now))
+                .map(Booking::getId)
+                .findFirst();
     }
 
     public BookingResponse get(long bookingId, CurrentUser user) {

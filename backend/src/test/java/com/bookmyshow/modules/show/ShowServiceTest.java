@@ -20,6 +20,7 @@ import com.bookmyshow.modules.movie.MovieService;
 import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
 import com.bookmyshow.modules.screen.ScreenService;
 import com.bookmyshow.modules.show.ShowTypes.CreateShowRequest;
+import com.bookmyshow.modules.show.ShowTypes.ShowFilters;
 import com.bookmyshow.modules.show.ShowTypes.ShowResponse;
 import com.bookmyshow.security.CurrentUser;
 import com.bookmyshow.security.Roles;
@@ -83,7 +84,7 @@ class ShowServiceTest {
         when(showRepository.findAllByCinemaIdAndShowDateOrderByStartTimeAsc(10L, today))
                 .thenReturn(List.of(show));
 
-        List<ShowResponse> result = showService.listByCinema(10L, null);
+        List<ShowResponse> result = showService.listByCinema(10L, null, ShowFilters.NONE);
 
         assertThat(result).singleElement().satisfies(r -> {
             assertThat(r.movieId()).isEqualTo(2L);
@@ -94,12 +95,53 @@ class ShowServiceTest {
     }
 
     @Test
+    void filtersQuietSubtitledWheelchairShows() {
+        LocalDate date = LocalDate.of(2026, 10, 20);
+        Show quietOnScreen3 = show(3L, true, true);
+        Show quietOnScreen4 = show(4L, true, true);
+        Show loudOnScreen3 = show(3L, false, true);
+        Show quietNoSubtitles = show(3L, true, false);
+        when(showRepository.findAllByCinemaIdAndShowDateOrderByStartTimeAsc(10L, date))
+                .thenReturn(List.of(quietOnScreen3, quietOnScreen4, loudOnScreen3, quietNoSubtitles));
+        when(screenService.withWheelchairSeats(List.of(3L, 4L))).thenReturn(Set.of(3L));
+
+        List<ShowResponse> result = showService.listByCinema(10L, date, new ShowFilters(true, false, true, true));
+
+        assertThat(result).singleElement().satisfies(r -> {
+            assertThat(r.screenId()).isEqualTo(3L);
+            assertThat(r.quiet()).isTrue();
+            assertThat(r.subtitles()).isTrue();
+        });
+    }
+
+    @Test
+    void createsShowWithFeatureFlags() {
+        when(screenService.lockAndGetCinemaId(3L)).thenReturn(10L);
+        when(movieService.getMovie(2L)).thenReturn(SKY_RIDERS);
+        when(showRepository.save(any(Show.class))).thenAnswer(call -> call.getArgument(0));
+
+        ShowResponse created = showService.create(
+                3L, new CreateShowRequest(2L, SHOW_DATE, LocalTime.of(14, 0), PRICES, true, null, true), ADMIN);
+
+        assertThat(created.quiet()).isTrue();
+        assertThat(created.sensoryFriendly()).isFalse();
+        assertThat(created.subtitles()).isTrue();
+    }
+
+    private static Show show(long screenId, boolean quiet, boolean subtitles) {
+        Show show = new Show(
+                10L, screenId, 2L, "Sky Riders", LocalDate.of(2026, 10, 20), LocalTime.of(14, 0), BigDecimal.TEN);
+        show.setFeatures(quiet, false, subtitles);
+        return show;
+    }
+
+    @Test
     void usesGivenDate() {
         LocalDate date = LocalDate.of(2026, 10, 20);
         when(showRepository.findAllByCinemaIdAndShowDateOrderByStartTimeAsc(10L, date))
                 .thenReturn(List.of());
 
-        assertThat(showService.listByCinema(10L, date)).isEmpty();
+        assertThat(showService.listByCinema(10L, date, ShowFilters.NONE)).isEmpty();
     }
 
     @Test
@@ -108,7 +150,7 @@ class ShowServiceTest {
                 .when(cinemaService)
                 .ensureExists(99L);
 
-        assertThatThrownBy(() -> showService.listByCinema(99L, null))
+        assertThatThrownBy(() -> showService.listByCinema(99L, null, ShowFilters.NONE))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("Cinema 99 not found");
     }
@@ -170,8 +212,8 @@ class ShowServiceTest {
     void rejectsMissingCategoryPrice() {
         when(screenService.lockAndGetCinemaId(3L)).thenReturn(10L);
         when(movieService.getMovie(2L)).thenReturn(SKY_RIDERS);
-        CreateShowRequest onlyRegular =
-                new CreateShowRequest(2L, SHOW_DATE, LocalTime.of(14, 0), Map.of("REGULAR", new BigDecimal("200.00")));
+        CreateShowRequest onlyRegular = new CreateShowRequest(
+                2L, SHOW_DATE, LocalTime.of(14, 0), Map.of("REGULAR", new BigDecimal("200.00")), null, null, null);
 
         assertThatThrownBy(() -> showService.create(3L, onlyRegular, ADMIN))
                 .isInstanceOf(BadRequestException.class)
@@ -190,7 +232,10 @@ class ShowServiceTest {
                 Map.of(
                         "REGULAR", new BigDecimal("200.00"),
                         "PREMIUM", new BigDecimal("300.00"),
-                        "RECLINER", new BigDecimal("500.00")));
+                        "RECLINER", new BigDecimal("500.00")),
+                null,
+                null,
+                null);
 
         assertThatThrownBy(() -> showService.create(3L, extra, ADMIN)).isInstanceOf(BadRequestException.class);
     }
@@ -230,7 +275,8 @@ class ShowServiceTest {
         when(screenService.lockAndGetCinemaId(3L)).thenReturn(10L);
         when(movieService.getMovie(2L)).thenReturn(SKY_RIDERS);
         // The clock is 2026-10-18 01:30 in India.
-        CreateShowRequest past = new CreateShowRequest(2L, LocalDate.of(2026, 10, 18), LocalTime.of(1, 0), PRICES);
+        CreateShowRequest past =
+                new CreateShowRequest(2L, LocalDate.of(2026, 10, 18), LocalTime.of(1, 0), PRICES, null, null, null);
 
         assertThatThrownBy(() -> showService.create(3L, past, ADMIN))
                 .isInstanceOf(BadRequestException.class)
@@ -251,7 +297,7 @@ class ShowServiceTest {
     }
 
     private static CreateShowRequest request(LocalTime startTime) {
-        return new CreateShowRequest(2L, SHOW_DATE, startTime, PRICES);
+        return new CreateShowRequest(2L, SHOW_DATE, startTime, PRICES, null, null, null);
     }
 
     @Test

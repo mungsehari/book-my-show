@@ -56,7 +56,10 @@ class ScreenControllerTest {
                 "Screen 1",
                 2,
                 List.of(new RowResponse(
-                        "A", List.of(new SeatResponse(5L, 1, "REGULAR"), new SeatResponse(6L, 2, "REGULAR")))));
+                        "A",
+                        List.of(
+                                new SeatResponse(5L, 1, "REGULAR", false),
+                                new SeatResponse(6L, 2, "REGULAR", false)))));
         when(screenService.getLayout(1L)).thenReturn(layout);
 
         mockMvc.perform(get("/api/v1/screens/1/layout"))

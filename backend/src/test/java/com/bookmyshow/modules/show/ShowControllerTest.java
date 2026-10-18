@@ -11,10 +11,12 @@ import com.bookmyshow.bootstrap.WithSecurityConfig;
 import com.bookmyshow.common.error.NotFoundException;
 import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
 import com.bookmyshow.modules.show.ShowTypes.CategoryPrice;
+import com.bookmyshow.modules.show.ShowTypes.CrowdResponse;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapResponse;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapRow;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapSeat;
 import com.bookmyshow.modules.show.ShowTypes.SeatStatus;
+import com.bookmyshow.modules.show.ShowTypes.ShowFilters;
 import com.bookmyshow.modules.show.ShowTypes.ShowResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -41,9 +43,36 @@ class ShowControllerTest {
     @MockitoBean
     private ShowSeatMapService showSeatMapService;
 
+    @MockitoBean
+    private ShowCrowdService showCrowdService;
+
+    @Test
+    void crowdMeterIsPublic() throws Exception {
+        when(showCrowdService.getCrowd(50L)).thenReturn(new CrowdResponse(50L, 100, 70, 10, 20, 80, "HIGH"));
+
+        mockMvc.perform(get("/api/v1/shows/50/crowd"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.percentFull").value(80))
+                .andExpect(jsonPath("$.level").value("HIGH"));
+    }
+
+    @Test
+    void passesShowFilters() throws Exception {
+        when(showService.listByCinema(10L, DATE, new ShowFilters(true, false, true, true)))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/cinemas/10/shows")
+                        .param("date", "2026-10-17")
+                        .param("quiet", "true")
+                        .param("subtitles", "true")
+                        .param("wheelchair", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(0));
+    }
+
     @Test
     void listsShowsForDate() throws Exception {
-        when(showService.listByCinema(10L, DATE))
+        when(showService.listByCinema(10L, DATE, ShowFilters.NONE))
                 .thenReturn(List.of(new ShowResponse(
                         100L,
                         10L,
@@ -52,7 +81,10 @@ class ShowControllerTest {
                         "The Last Monsoon",
                         DATE,
                         LocalTime.of(18, 30),
-                        new BigDecimal("320.00"))));
+                        new BigDecimal("320.00"),
+                        false,
+                        false,
+                        false)));
 
         mockMvc.perform(get("/api/v1/cinemas/10/shows").param("date", "2026-10-17"))
                 .andExpect(status().isOk())
@@ -65,7 +97,7 @@ class ShowControllerTest {
 
     @Test
     void passesNullDateWhenMissing() throws Exception {
-        when(showService.listByCinema(eq(10L), isNull())).thenReturn(List.of());
+        when(showService.listByCinema(eq(10L), isNull(), eq(ShowFilters.NONE))).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/cinemas/10/shows"))
                 .andExpect(status().isOk())
@@ -81,7 +113,8 @@ class ShowControllerTest {
 
     @Test
     void returns404WhenCinemaMissing() throws Exception {
-        when(showService.listByCinema(99L, DATE)).thenThrow(new NotFoundException("Cinema 99 not found"));
+        when(showService.listByCinema(99L, DATE, ShowFilters.NONE))
+                .thenThrow(new NotFoundException("Cinema 99 not found"));
 
         mockMvc.perform(get("/api/v1/cinemas/99/shows").param("date", "2026-10-17"))
                 .andExpect(status().isNotFound())
@@ -131,7 +164,7 @@ class ShowControllerTest {
                         List.of(new SeatMapRow(
                                 "A",
                                 List.of(new SeatMapSeat(
-                                        1L, 1, "REGULAR", new BigDecimal("200.00"), SeatStatus.AVAILABLE))))));
+                                        1L, 1, "REGULAR", new BigDecimal("200.00"), SeatStatus.AVAILABLE, false))))));
 
         mockMvc.perform(get("/api/v1/shows/50/seats"))
                 .andExpect(status().isOk())

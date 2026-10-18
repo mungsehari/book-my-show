@@ -20,12 +20,15 @@ public final class ScreenTypes {
             @NotBlank @Size(max = 50) String name,
             @NotEmpty @Size(max = 26) List<@Valid @NotNull RowRequest> rows) {}
 
+    /** wheelchairSeats lists seat numbers in this row with space for a wheelchair. Optional. */
     public record RowRequest(
             @NotBlank @Pattern(regexp = "^[A-Z]$") String label,
             @NotNull @Positive @Max(50) Integer seatCount,
 
             @NotNull @Pattern(regexp = "^(REGULAR|PREMIUM|RECLINER)$")
-            String category) {}
+            String category,
+
+            @Size(max = 50) List<@NotNull @Positive Integer> wheelchairSeats) {}
 
     public record ScreenResponse(Long id, Long cinemaId, String name, long seatCount) {
 
@@ -34,10 +37,10 @@ public final class ScreenTypes {
         }
     }
 
-    public record SeatResponse(Long id, Integer number, String category) {
+    public record SeatResponse(Long id, Integer number, String category, boolean wheelchair) {
 
         static SeatResponse from(Seat seat) {
-            return new SeatResponse(seat.getId(), seat.getSeatNumber(), seat.getCategory());
+            return new SeatResponse(seat.getId(), seat.getSeatNumber(), seat.getCategory(), seat.isWheelchair());
         }
     }
 

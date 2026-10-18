@@ -14,6 +14,7 @@ import com.bookmyshow.modules.screen.ScreenTypes.SeatResponse;
 import com.bookmyshow.modules.screen.SeatRepository.SeatCount;
 import com.bookmyshow.security.CurrentUser;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -78,13 +79,24 @@ public class ScreenService {
             if (!labels.add(row.label())) {
                 throw new BadRequestException("Row " + row.label() + " is listed more than once");
             }
+            for (Integer number : wheelchairSeats(row)) {
+                if (number > row.seatCount()) {
+                    throw new BadRequestException(
+                            "Wheelchair seat " + row.label() + number + " is past the end of the row");
+                }
+            }
         }
 
         Screen screen = screenRepository.save(new Screen(cinemaId, name));
         List<Seat> seats = new ArrayList<>();
         request.rows().stream().sorted((a, b) -> a.label().compareTo(b.label())).forEach(row -> {
+            Set<Integer> wheelchair = Set.copyOf(wheelchairSeats(row));
             for (int number = 1; number <= row.seatCount(); number++) {
-                seats.add(new Seat(screen.getId(), row.label(), number, row.category()));
+                Seat seat = new Seat(screen.getId(), row.label(), number, row.category());
+                if (wheelchair.contains(number)) {
+                    seat.markWheelchair();
+                }
+                seats.add(seat);
             }
         });
         return toLayout(screen, seatRepository.saveAll(seats));
@@ -107,11 +119,20 @@ public class ScreenService {
         return Set.copyOf(seatRepository.findCategoriesByScreenId(screenId));
     }
 
+    /** Screens from the list that have at least one wheelchair seat. Used by the show filters. */
+    public Set<Long> withWheelchairSeats(Collection<Long> screenIds) {
+        return screenIds.isEmpty() ? Set.of() : Set.copyOf(seatRepository.findScreenIdsWithWheelchairSeats(screenIds));
+    }
+
     /** Used by other modules to check a screen before using its ID. */
     public void ensureExists(long screenId) {
         if (!screenRepository.existsById(screenId)) {
             throw notFound(screenId);
         }
+    }
+
+    private static List<Integer> wheelchairSeats(RowRequest row) {
+        return row.wheelchairSeats() == null ? List.of() : row.wheelchairSeats();
     }
 
     private static LayoutResponse toLayout(Screen screen, List<Seat> seats) {

@@ -7,7 +7,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-/** A fixed seat on a screen. Row is a single letter A to Z. Category is REGULAR, PREMIUM, or RECLINER. */
+/**
+ * A fixed seat on a screen. Row is a single letter A to Z. Category is REGULAR, PREMIUM, or RECLINER. Some seats have
+ * space for a wheelchair.
+ */
 @Entity
 @Table(name = "seats")
 public class Seat {
@@ -28,6 +31,10 @@ public class Seat {
     @Column(nullable = false, length = 20)
     private String category;
 
+    /** Space for a wheelchair. */
+    @Column(nullable = false)
+    private Boolean wheelchair = false;
+
     protected Seat() {}
 
     public Seat(Long screenId, String rowLabel, Integer seatNumber, String category) {
@@ -35,6 +42,14 @@ public class Seat {
         this.rowLabel = rowLabel;
         this.seatNumber = seatNumber;
         this.category = category;
+    }
+
+    void markWheelchair() {
+        this.wheelchair = true;
+    }
+
+    public boolean isWheelchair() {
+        return Boolean.TRUE.equals(wheelchair);
     }
 
     public Long getId() {

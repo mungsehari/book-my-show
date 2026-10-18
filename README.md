@@ -10,10 +10,12 @@ Backend boilerplate with read-only list APIs.
 |---|---|
 | `GET /api/v1/cities` | All cities |
 | `GET /api/v1/cities/{cityId}/cinemas` | Cinemas in a city |
-| `GET /api/v1/cinemas/{cinemaId}/shows?date=yyyy-MM-dd` | Shows at a cinema on a date (default today) |
+| `GET /api/v1/cinemas/{cinemaId}/shows?date=yyyy-MM-dd` | Shows at a cinema on a date (default today). Filters: `quiet`, `sensoryFriendly`, `subtitles`, `wheelchair` (each `true` to apply). |
 | `GET /api/v1/cinemas/{cinemaId}/screens` | Screens in a cinema, with seat counts |
 | `GET /api/v1/screens/{screenId}/layout` | Seat layout of a screen, grouped by row |
-| `GET /api/v1/shows/{showId}/seats` | Seat map of a show: price and status of every seat |
+| `GET /api/v1/shows/{showId}/seats` | Seat map of a show: price, status, and wheelchair flag of every seat |
+| `GET /api/v1/shows/{showId}/crowd` | Crowd meter: sold, held, available, percent full, and level (LOW, MEDIUM, HIGH, HOUSEFULL) |
+| `GET /api/v1/movies/{movieId}/reviews` | Verified reviews, newest first, with the average rating |
 | `GET /api/v1/cities/{cityId}/movies?date=yyyy-MM-dd` | Movies playing in a city on a date (default next 7 days) |
 | `GET /api/v1/movies?language=Hindi` | All movies, or movies in one language |
 | `GET /api/v1/movies/{movieId}` | One movie |
@@ -35,8 +37,8 @@ Admin (send `Authorization: Bearer <token>`):
 |---|---|
 | `POST /api/v1/admin/movies` | ADMIN |
 | `POST /api/v1/admin/cinemas/{cinemaId}/admins` | ADMIN. Makes the user a theatre admin of that cinema. |
-| `POST /api/v1/admin/cinemas/{cinemaId}/screens` | ADMIN, or a theatre admin of that cinema |
-| `POST /api/v1/admin/screens/{screenId}/shows` | ADMIN, or a theatre admin of that cinema. Needs a price for every seat category on the screen, for example `"prices": {"REGULAR": 200, "PREMIUM": 300}`. Rejects overlapping shows. |
+| `POST /api/v1/admin/cinemas/{cinemaId}/screens` | ADMIN, or a theatre admin of that cinema. Each row can list `wheelchairSeats` (seat numbers). |
+| `POST /api/v1/admin/screens/{screenId}/shows` | ADMIN, or a theatre admin of that cinema. Needs a price for every seat category on the screen, for example `"prices": {"REGULAR": 200, "PREMIUM": 300}`. Optional `quiet`, `sensoryFriendly`, `subtitles`. Rejects overlapping shows. |
 
 The first admin: put your email in `ADMIN_EMAILS` in `.env`, then sign up with it.
 
@@ -60,6 +62,8 @@ Bookings and payment (Razorpay test mode):
 | `GET /api/v1/bookings/{bookingId}/ticket` | Ticket for a confirmed booking. The frontend shows `ticketCode` as a QR code. |
 | `POST /api/v1/admin/tickets/check-in` | Entry scan, `{"ticketCode": "..."}`. ADMIN, or a theatre admin of that cinema. Works once per ticket, only on the show day. |
 | `POST /api/v1/payments/razorpay/webhook` | Called by Razorpay. Checks `X-Razorpay-Signature`. Confirms the booking even if the user closed the page. |
+
+Reviews: `POST /api/v1/movies/{movieId}/reviews` with `{"rating": 1-5, "text": "..."}`. Only users with a paid booking whose show has started (or who were checked in) can post, once per movie.
 
 Sold seats show as `BOOKED`. A seat can be sold only once (a unique key in the database). If a payment arrives after the seats were sold to someone else, the booking becomes `NEEDS_REFUND`.
 

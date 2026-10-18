@@ -223,16 +223,31 @@ class ShowSeatLockServiceTest {
                                 "A",
                                 List.of(
                                         new SeatMapSeat(
-                                                1L, 1, "REGULAR", new BigDecimal("200.00"), SeatStatus.AVAILABLE),
+                                                1L,
+                                                1,
+                                                "REGULAR",
+                                                new BigDecimal("200.00"),
+                                                SeatStatus.AVAILABLE,
+                                                false),
                                         new SeatMapSeat(
-                                                2L, 2, "REGULAR", new BigDecimal("200.00"), SeatStatus.LOCKED))),
+                                                2L, 2, "REGULAR", new BigDecimal("200.00"), SeatStatus.LOCKED, false))),
                         new SeatMapRow(
                                 "J",
                                 List.of(
                                         new SeatMapSeat(
-                                                3L, 1, "RECLINER", new BigDecimal("450.00"), SeatStatus.AVAILABLE),
-                                        new SeatMapSeat(4L, 2, "PREMIUM", null, SeatStatus.UNAVAILABLE),
+                                                3L,
+                                                1,
+                                                "RECLINER",
+                                                new BigDecimal("450.00"),
+                                                SeatStatus.AVAILABLE,
+                                                false),
+                                        new SeatMapSeat(4L, 2, "PREMIUM", null, SeatStatus.UNAVAILABLE, false),
                                         new SeatMapSeat(
-                                                5L, 3, "RECLINER", new BigDecimal("450.00"), SeatStatus.BOOKED)))));
+                                                5L,
+                                                3,
+                                                "RECLINER",
+                                                new BigDecimal("450.00"),
+                                                SeatStatus.BOOKED,
+                                                false)))));
     }
 }

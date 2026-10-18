@@ -69,6 +69,10 @@ public class Booking {
     @Column(name = "movie_name", nullable = false, length = 200)
     private String movieName;
 
+    /** Null for old shows not linked to the catalog. */
+    @Column(name = "movie_id")
+    private Long movieId;
+
     @Column(name = "cinema_id", nullable = false)
     private Long cinemaId;
 
@@ -100,6 +104,7 @@ public class Booking {
         this.showDate = lock.showDate();
         this.startTime = lock.startTime();
         this.movieName = lock.movieName();
+        this.movieId = lock.movieId();
         this.cinemaId = lock.cinemaId();
         this.screenName = lock.screenName();
         this.seatLabels = String.join(",", lock.seatLabels());
@@ -190,6 +195,10 @@ public class Booking {
 
     public String getMovieName() {
         return movieName;
+    }
+
+    public Long getMovieId() {
+        return movieId;
     }
 
     public Long getCinemaId() {

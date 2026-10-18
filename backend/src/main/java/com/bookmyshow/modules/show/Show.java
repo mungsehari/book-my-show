@@ -43,6 +43,17 @@ public class Show {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    /** Calm show: no kids' crowd, quieter audience. Set by the theatre. */
+    @Column(nullable = false)
+    private Boolean quiet = false;
+
+    /** Lower sound, lights partly on. */
+    @Column(name = "sensory_friendly", nullable = false)
+    private Boolean sensoryFriendly = false;
+
+    @Column(nullable = false)
+    private Boolean subtitles = false;
+
     protected Show() {}
 
     public Show(
@@ -60,6 +71,24 @@ public class Show {
         this.showDate = showDate;
         this.startTime = startTime;
         this.price = price;
+    }
+
+    void setFeatures(boolean quiet, boolean sensoryFriendly, boolean subtitles) {
+        this.quiet = quiet;
+        this.sensoryFriendly = sensoryFriendly;
+        this.subtitles = subtitles;
+    }
+
+    public boolean isQuiet() {
+        return Boolean.TRUE.equals(quiet);
+    }
+
+    public boolean isSensoryFriendly() {
+        return Boolean.TRUE.equals(sensoryFriendly);
+    }
+
+    public boolean hasSubtitles() {
+        return Boolean.TRUE.equals(subtitles);
     }
 
     public Long getId() {

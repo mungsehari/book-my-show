@@ -101,6 +101,6 @@ public class ShowSeatMapService {
         } else {
             status = SeatStatus.AVAILABLE;
         }
-        return new SeatMapSeat(seat.id(), seat.number(), seat.category(), price, status);
+        return new SeatMapSeat(seat.id(), seat.number(), seat.category(), price, status, seat.wheelchair());
     }
 }

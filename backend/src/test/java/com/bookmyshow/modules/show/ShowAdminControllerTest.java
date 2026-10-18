@@ -49,7 +49,10 @@ class ShowAdminControllerTest {
                         "Sky Riders",
                         LocalDate.of(2026, 10, 20),
                         LocalTime.of(14, 0),
-                        new BigDecimal("300.00")));
+                        new BigDecimal("300.00"),
+                        false,
+                        false,
+                        false));
 
         mockMvc.perform(post("/api/v1/admin/screens/3/shows")
                         .with(TestLogins.as(1L, Roles.ADMIN))

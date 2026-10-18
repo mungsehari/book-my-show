@@ -60,7 +60,7 @@ Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and dr
 
 | Feature | What it does | Technical challenge |
 |---|---|---|
-| Verified reviews | Only people who booked and watched can review | Link each review to a used ticket |
+| Verified reviews (Done) | Only people who booked and watched can review | Link each review to a used ticket |
 | Ticket resale | Resell a ticket at face value only | Ownership transfer, new QR, block price markup |
 | Friends activity | "3 friends watched this movie" | Friend graph, privacy settings |
 
@@ -70,7 +70,7 @@ Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and dr
 |---|---|---|
 | Last-minute deals | Empty seats get cheaper close to show time | Price rules engine, scheduled jobs |
 | Price alerts | Notify when a ticket drops below a set price | Alert matching, notifications |
-| Crowd meter | Show how full a show is, live | Cached seat counts (Redis) |
+| Crowd meter (Done) | Show how full a show is, live | Cached seat counts (Redis) |
 | Movie pass | Monthly subscription, for example 4 movies for a fixed price | Recurring billing, usage limits |
 | Cancellation protection | Pay a small fee for a full refund up to 2 hours before the show | Refund rules, release seats back to sale |
 
@@ -79,8 +79,8 @@ Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and dr
 | Feature | What it does | Technical challenge |
 |---|---|---|
 | Seat view preview | See the screen from a chosen seat | Image per seat zone, CDN |
-| Quiet show tag | Shows with fewer kids or smaller crowds | Tags on shows, filters |
-| Accessibility filters | Wheelchair seats, subtitles, sensory-friendly shows | Seat and show attributes, filters |
+| Quiet show tag (Done) | Shows with fewer kids or smaller crowds | Tags on shows, filters |
+| Accessibility filters (Done) | Wheelchair seats, subtitles, sensory-friendly shows | Seat and show attributes, filters |
 | Food pre-order | Order snacks with the ticket, delivered to the seat at the interval | Order per booking, kitchen queue per cinema |
 | Wallet pass | Add the ticket to Google Wallet or Apple Wallet | Signed pass files per provider |
 

@@ -8,6 +8,7 @@ import com.bookmyshow.modules.movie.MovieService;
 import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
 import com.bookmyshow.modules.screen.ScreenService;
 import com.bookmyshow.modules.show.ShowTypes.CreateShowRequest;
+import com.bookmyshow.modules.show.ShowTypes.ShowFilters;
 import com.bookmyshow.modules.show.ShowTypes.ShowResponse;
 import com.bookmyshow.security.CurrentUser;
 import java.math.BigDecimal;
@@ -63,13 +64,29 @@ public class ShowService {
         this.clock = clock;
     }
 
-    /** Lists shows for a cinema on a date. No date means today in the app time zone. */
-    public List<ShowResponse> listByCinema(long cinemaId, LocalDate date) {
+    /**
+     * Lists shows for a cinema on a date. No date means today in the app time zone. Filters keep only quiet,
+     * sensory-friendly, subtitled, or wheelchair-ready shows when asked.
+     */
+    public List<ShowResponse> listByCinema(long cinemaId, LocalDate date, ShowFilters filters) {
         cinemaService.ensureExists(cinemaId);
         LocalDate showDate = date != null ? date : LocalDate.now(clock);
-        return showRepository.findAllByCinemaIdAndShowDateOrderByStartTimeAsc(cinemaId, showDate).stream()
-                .map(ShowResponse::from)
+        List<Show> shows = showRepository.findAllByCinemaIdAndShowDateOrderByStartTimeAsc(cinemaId, showDate).stream()
+                .filter(show -> !filters.quiet() || show.isQuiet())
+                .filter(show -> !filters.sensoryFriendly() || show.isSensoryFriendly())
+                .filter(show -> !filters.subtitles() || show.hasSubtitles())
                 .toList();
+        if (filters.wheelchair()) {
+            Set<Long> ready = screenService.withWheelchairSeats(shows.stream()
+                    .map(Show::getScreenId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .toList());
+            shows = shows.stream()
+                    .filter(show -> ready.contains(show.getScreenId()))
+                    .toList();
+        }
+        return shows.stream().map(ShowResponse::from).toList();
     }
 
     /** Lists movies playing in a city on a date. No date means the next 7 days, today included. */
@@ -102,8 +119,13 @@ public class ShowService {
         ensureNoOverlap(screenId, request.showDate(), start, end);
 
         BigDecimal lowest = Collections.min(request.prices().values());
-        Show show = showRepository.save(new Show(
-                cinemaId, screenId, movie.id(), movie.title(), request.showDate(), request.startTime(), lowest));
+        Show newShow = new Show(
+                cinemaId, screenId, movie.id(), movie.title(), request.showDate(), request.startTime(), lowest);
+        newShow.setFeatures(
+                Boolean.TRUE.equals(request.quiet()),
+                Boolean.TRUE.equals(request.sensoryFriendly()),
+                Boolean.TRUE.equals(request.subtitles()));
+        Show show = showRepository.save(newShow);
         showPriceRepository.saveAll(request.prices().entrySet().stream()
                 .map(entry -> new ShowPrice(show.getId(), entry.getKey(), entry.getValue()))
                 .toList());

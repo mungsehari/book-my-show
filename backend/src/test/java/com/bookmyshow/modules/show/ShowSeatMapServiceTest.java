@@ -59,9 +59,9 @@ class ShowSeatMapServiceTest {
                                 new RowResponse(
                                         "A",
                                         List.of(
-                                                new SeatResponse(1L, 1, "REGULAR"),
-                                                new SeatResponse(2L, 2, "REGULAR"))),
-                                new RowResponse("J", List.of(new SeatResponse(3L, 1, "RECLINER"))))));
+                                                new SeatResponse(1L, 1, "REGULAR", false),
+                                                new SeatResponse(2L, 2, "REGULAR", false))),
+                                new RowResponse("J", List.of(new SeatResponse(3L, 1, "RECLINER", false))))));
         when(showPriceRepository.findAllByShowId(50L))
                 .thenReturn(List.of(
                         new ShowPrice(50L, "RECLINER", new BigDecimal("450.00")),
@@ -88,7 +88,9 @@ class ShowSeatMapServiceTest {
                         2,
                         List.of(new RowResponse(
                                 "A",
-                                List.of(new SeatResponse(1L, 1, "REGULAR"), new SeatResponse(2L, 2, "REGULAR"))))));
+                                List.of(
+                                        new SeatResponse(1L, 1, "REGULAR", false),
+                                        new SeatResponse(2L, 2, "REGULAR", false))))));
         when(showPriceRepository.findAllByShowId(50L))
                 .thenReturn(List.of(new ShowPrice(50L, "REGULAR", new BigDecimal("200.00"))));
         when(seatBookingService.soldSeats(50L)).thenReturn(Set.of(1L));
@@ -110,7 +112,9 @@ class ShowSeatMapServiceTest {
                         2,
                         List.of(new RowResponse(
                                 "A",
-                                List.of(new SeatResponse(1L, 1, "REGULAR"), new SeatResponse(2L, 2, "REGULAR"))))));
+                                List.of(
+                                        new SeatResponse(1L, 1, "REGULAR", false),
+                                        new SeatResponse(2L, 2, "REGULAR", false))))));
         when(showPriceRepository.findAllByShowId(50L))
                 .thenReturn(List.of(new ShowPrice(50L, "REGULAR", new BigDecimal("200.00"))));
         when(seatLockStore.lockedSeats(50L, List.of(1L, 2L))).thenReturn(Set.of(2L));
@@ -129,7 +133,7 @@ class ShowSeatMapServiceTest {
                         10L,
                         "Screen 1",
                         1,
-                        List.of(new RowResponse("G", List.of(new SeatResponse(7L, 1, "PREMIUM"))))));
+                        List.of(new RowResponse("G", List.of(new SeatResponse(7L, 1, "PREMIUM", false))))));
         when(showPriceRepository.findAllByShowId(50L)).thenReturn(List.of());
 
         SeatMapSeat seat = seatMapService.getSeatMap(50L).rows().get(0).seats().get(0);

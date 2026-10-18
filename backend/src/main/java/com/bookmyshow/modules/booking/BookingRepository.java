@@ -3,6 +3,7 @@ package com.bookmyshow.modules.booking;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +14,9 @@ import org.springframework.data.jpa.repository.Query;
 interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByLockId(String lockId);
+
+    List<Booking> findByUserIdAndMovieIdAndStatusAndShowDateLessThanEqual(
+            Long userId, Long movieId, String status, LocalDate onOrBefore);
 
     Page<Booking> findByUserIdAndShowDateGreaterThanEqualAndStatusIn(
             Long userId, LocalDate from, Collection<String> statuses, Pageable pageable);

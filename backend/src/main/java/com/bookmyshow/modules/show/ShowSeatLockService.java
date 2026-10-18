@@ -141,7 +141,8 @@ public class ShowSeatLockService {
                 map.movieName(),
                 map.showDate(),
                 map.startTime(),
-                List.copyOf(seatLabels));
+                List.copyOf(seatLabels),
+                show.getMovieId());
     }
 
     /** Used by the booking module once seats are sold. Does nothing if the lock already expired. */

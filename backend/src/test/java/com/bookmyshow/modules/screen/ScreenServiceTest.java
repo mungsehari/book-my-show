@@ -22,6 +22,7 @@ import com.bookmyshow.modules.screen.ScreenTypes.LayoutResponse;
 import com.bookmyshow.modules.screen.ScreenTypes.RowRequest;
 import com.bookmyshow.modules.screen.ScreenTypes.RowResponse;
 import com.bookmyshow.modules.screen.ScreenTypes.ScreenResponse;
+import com.bookmyshow.modules.screen.ScreenTypes.SeatResponse;
 import com.bookmyshow.modules.screen.SeatRepository.SeatCount;
 import com.bookmyshow.security.CurrentUser;
 import com.bookmyshow.security.Roles;
@@ -128,7 +129,8 @@ class ScreenServiceTest {
         LayoutResponse layout = screenService.create(
                 10L,
                 new CreateScreenRequest(
-                        "Screen 3", List.of(new RowRequest("B", 2, "PREMIUM"), new RowRequest("A", 3, "REGULAR"))),
+                        "Screen 3",
+                        List.of(new RowRequest("B", 2, "PREMIUM", null), new RowRequest("A", 3, "REGULAR", null))),
                 user);
 
         verify(cinemaAccessService).ensureCanManage(user, 10L);
@@ -139,9 +141,38 @@ class ScreenServiceTest {
     }
 
     @Test
+    void marksWheelchairSeats() {
+        when(screenRepository.save(any(Screen.class))).thenAnswer(call -> {
+            Screen saved = call.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 3L);
+            return saved;
+        });
+        when(seatRepository.saveAll(anyList())).thenAnswer(call -> call.getArgument(0));
+
+        LayoutResponse layout = screenService.create(
+                10L,
+                new CreateScreenRequest("Screen 3", List.of(new RowRequest("A", 3, "REGULAR", List.of(1, 3)))),
+                new CurrentUser(1L, Roles.ADMIN));
+
+        assertThat(layout.rows().get(0).seats())
+                .extracting(SeatResponse::wheelchair)
+                .containsExactly(true, false, true);
+    }
+
+    @Test
+    void rejectsWheelchairSeatPastRowEnd() {
+        CreateScreenRequest request =
+                new CreateScreenRequest("Screen 3", List.of(new RowRequest("A", 3, "REGULAR", List.of(4))));
+
+        assertThatThrownBy(() -> screenService.create(10L, request, new CurrentUser(1L, Roles.ADMIN)))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Wheelchair seat A4 is past the end of the row");
+    }
+
+    @Test
     void rejectsRepeatedRow() {
         CreateScreenRequest request = new CreateScreenRequest(
-                "Screen 3", List.of(new RowRequest("A", 2, "REGULAR"), new RowRequest("A", 3, "REGULAR")));
+                "Screen 3", List.of(new RowRequest("A", 2, "REGULAR", null), new RowRequest("A", 3, "REGULAR", null)));
 
         assertThatThrownBy(() -> screenService.create(10L, request, new CurrentUser(1L, Roles.ADMIN)))
                 .isInstanceOf(BadRequestException.class)
@@ -153,7 +184,8 @@ class ScreenServiceTest {
     void rejectsDuplicateScreenName() {
         when(screenRepository.existsByCinemaIdAndNameIgnoreCase(10L, "Screen 1"))
                 .thenReturn(true);
-        CreateScreenRequest request = new CreateScreenRequest("Screen 1", List.of(new RowRequest("A", 2, "REGULAR")));
+        CreateScreenRequest request =
+                new CreateScreenRequest("Screen 1", List.of(new RowRequest("A", 2, "REGULAR", null)));
 
         assertThatThrownBy(() -> screenService.create(10L, request, new CurrentUser(1L, Roles.ADMIN)))
                 .isInstanceOf(ConflictException.class);
@@ -165,7 +197,8 @@ class ScreenServiceTest {
         doThrow(new ForbiddenException("You cannot manage cinema 10"))
                 .when(cinemaAccessService)
                 .ensureCanManage(user, 10L);
-        CreateScreenRequest request = new CreateScreenRequest("Screen 3", List.of(new RowRequest("A", 2, "REGULAR")));
+        CreateScreenRequest request =
+                new CreateScreenRequest("Screen 3", List.of(new RowRequest("A", 2, "REGULAR", null)));
 
         assertThatThrownBy(() -> screenService.create(10L, request, user)).isInstanceOf(ForbiddenException.class);
         verify(screenRepository, never()).save(any());
