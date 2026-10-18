@@ -50,7 +50,7 @@ backend/src/main/java/com/bookmyshow/
 ├── security/                    # JWT (later)
 ├── integrations/                # third-party services (later)
 ├── common/                      # error, response, cache, util
-└── modules/                     # business features (city, cinema, show, movie)
+└── modules/                     # business features (city, cinema, show, movie, screen)
 ```
 
 Structure rules:

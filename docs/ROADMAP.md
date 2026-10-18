@@ -33,7 +33,7 @@ Each step is one small change with its own plan and approval.
 |---|---|---|---|
 | 1.1 | Link shows to movies (`shows.movie_id`) | Nothing | Done (nullable for now) |
 | 1.2 | Movies playing in a city API | Nothing | Done |
-| 1.3 | Screens and seat layout | Nothing | Planned |
+| 1.3 | Screens and seat layout | Nothing | Done (read APIs, seed data) |
 | 1.4 | Theatre admin panel APIs | 1.3, 1.5 | Planned |
 | 1.5 | Users and login (JWT) | Network unlock | Planned |
 | 1.6 | Seat map and availability per show | 1.3 | Planned |

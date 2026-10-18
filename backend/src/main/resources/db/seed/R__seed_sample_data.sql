@@ -20,6 +20,25 @@ FROM (VALUES ('Mumbai', 'Maharashtra', 'City Cineplex Andheri', 'Andheri West, M
 JOIN cities c ON c.name = v.city AND c.state = v.state
 ON CONFLICT (city_id, name) DO NOTHING;
 
+-- Two screens per cinema.
+INSERT INTO screens (cinema_id, name)
+SELECT ci.id, v.name
+FROM cinemas ci
+CROSS JOIN (VALUES ('Screen 1'), ('Screen 2')) AS v (name)
+ON CONFLICT (cinema_id, name) DO NOTHING;
+
+-- Same layout on every screen: rows A-F regular (12 seats), G-I premium (12 seats), J recliner (8 seats).
+INSERT INTO seats (screen_id, row_label, seat_number, category)
+SELECT sc.id, r.row_label, n.seat_number, r.category
+FROM screens sc
+CROSS JOIN (VALUES ('A', 'REGULAR', 12), ('B', 'REGULAR', 12), ('C', 'REGULAR', 12),
+                   ('D', 'REGULAR', 12), ('E', 'REGULAR', 12), ('F', 'REGULAR', 12),
+                   ('G', 'PREMIUM', 12), ('H', 'PREMIUM', 12), ('I', 'PREMIUM', 12),
+                   ('J', 'RECLINER', 8))
+         AS r (row_label, category, seat_count)
+CROSS JOIN LATERAL generate_series(1, r.seat_count) AS n (seat_number)
+ON CONFLICT (screen_id, row_label, seat_number) DO NOTHING;
+
 INSERT INTO movies (title, description, language, genre, duration_minutes, certificate, release_date)
 VALUES ('The Last Monsoon', 'A fishing family waits out one last storm season.', 'Hindi', 'Drama', 142, 'UA', DATE '2026-09-25'),
        ('Sky Riders', 'Two rival pilots race across the Himalayas.', 'English', 'Action', 128, 'UA', DATE '2026-10-02'),

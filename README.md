@@ -11,6 +11,8 @@ Backend boilerplate with read-only list APIs.
 | `GET /api/v1/cities` | All cities |
 | `GET /api/v1/cities/{cityId}/cinemas` | Cinemas in a city |
 | `GET /api/v1/cinemas/{cinemaId}/shows?date=yyyy-MM-dd` | Shows at a cinema on a date (default today) |
+| `GET /api/v1/cinemas/{cinemaId}/screens` | Screens in a cinema, with seat counts |
+| `GET /api/v1/screens/{screenId}/layout` | Seat layout of a screen, grouped by row |
 | `GET /api/v1/cities/{cityId}/movies?date=yyyy-MM-dd` | Movies playing in a city on a date (default next 7 days) |
 | `GET /api/v1/movies?language=Hindi` | All movies, or movies in one language |
 | `GET /api/v1/movies/{movieId}` | One movie |
