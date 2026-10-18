@@ -39,8 +39,8 @@ Each step is one small change with its own plan and approval.
 | 1.6 | Seat map and availability per show | 1.3 | Done (category prices; every seat AVAILABLE until locks and bookings) |
 | 1.7 | Seat lock with Redis | Network unlock, Redis compose file | Done (10 min locks, all or none, one lock per user per show) |
 | 1.8 | Booking and test payment with webhook (Razorpay test mode) | Razorpay test keys in `.env` | Done (no SDK; expiry job and refunds still to do) |
-| 1.9 | Ticket with signed QR | 1.8 | Planned |
-| 1.10 | Booking history | 1.8 | Planned |
+| 1.9 | Ticket with signed QR | 1.8 | Done (signed ticket code, one-time check-in; frontend draws the QR) |
+| 1.10 | Booking history | 1.8 | Done (upcoming and past, paged) |
 | 1.11 | Next.js frontend | Network unlock | Planned |
 
 Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and drop `movie_name`. The user approves and runs that migration.

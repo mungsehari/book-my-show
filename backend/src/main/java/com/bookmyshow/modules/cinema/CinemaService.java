@@ -34,6 +34,13 @@ public class CinemaService {
                 .toList();
     }
 
+    public CinemaResponse getCinema(long cinemaId) {
+        return cinemaRepository
+                .findById(cinemaId)
+                .map(CinemaResponse::from)
+                .orElseThrow(() -> new NotFoundException("Cinema " + cinemaId + " not found"));
+    }
+
     /** Used by other modules to check a cinema before using its ID. */
     public void ensureExists(long cinemaId) {
         if (!cinemaRepository.existsById(cinemaId)) {

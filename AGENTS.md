@@ -8,7 +8,7 @@ Edit rules here only. Tool-specific files (`CLAUDE.md`, `GEMINI.md`, `.cursor/ru
 
 Book My Show: a movie and event ticket booking app.
 
-Status: browse APIs (cities, cinemas, screens, shows, movies), login (email, phone OTP, Google), admin APIs to add movies, screens, and shows, seat locks (Redis), and booking with Razorpay test payments.
+Status: browse APIs (cities, cinemas, screens, shows, movies), login (email, phone OTP, Google), admin APIs to add movies, screens, and shows, seat locks (Redis), booking with Razorpay test payments, tickets with one-time check-in, and booking history.
 
 Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 

@@ -46,13 +46,15 @@ class ShowSeatLockServiceTest {
 
     private ShowSeatMapService seatMapService;
     private SeatLockStore seatLockStore;
+    private ShowRepository showRepository;
     private ShowSeatLockService lockService;
 
     @BeforeEach
     void setUp() {
         seatMapService = mock(ShowSeatMapService.class);
         seatLockStore = mock(SeatLockStore.class);
-        lockService = new ShowSeatLockService(seatMapService, seatLockStore, CLOCK);
+        showRepository = mock(ShowRepository.class);
+        lockService = new ShowSeatLockService(seatMapService, seatLockStore, showRepository, CLOCK);
         when(seatMapService.getSeatMap(50L)).thenReturn(map(LocalTime.of(18, 0)));
     }
 
@@ -162,12 +164,24 @@ class ShowSeatLockServiceTest {
 
     @Test
     void activeLockCarriesCurrentPrice() {
-        when(seatLockStore.find("lock-1")).thenReturn(Optional.of(new HeldLock("lock-1", 7L, 50L, List.of(1L, 3L))));
+        when(seatLockStore.find("lock-1")).thenReturn(Optional.of(new HeldLock("lock-1", 7L, 50L, List.of(3L, 1L))));
+        when(showRepository.findById(50L))
+                .thenReturn(Optional.of(new Show(
+                        10L,
+                        3L,
+                        2L,
+                        "Sky Riders",
+                        LocalDate.of(2026, 10, 18),
+                        LocalTime.of(18, 0),
+                        new BigDecimal("200.00"))));
 
         ActiveLock lock = lockService.getActiveLock("lock-1", ASHA);
 
         assertThat(lock.showId()).isEqualTo(50L);
         assertThat(lock.totalPrice()).isEqualByComparingTo("650.00");
+        assertThat(lock.cinemaId()).isEqualTo(10L);
+        assertThat(lock.screenName()).isEqualTo("Screen 1");
+        assertThat(lock.seatLabels()).containsExactly("J1", "A1");
     }
 
     @Test

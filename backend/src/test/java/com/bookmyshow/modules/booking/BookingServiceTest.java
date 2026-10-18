@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.bookmyshow.common.error.BadRequestException;
 import com.bookmyshow.common.error.ConflictException;
 import com.bookmyshow.common.error.ForbiddenException;
+import com.bookmyshow.common.response.PageResponse;
 import com.bookmyshow.integrations.payment.PaymentGateway;
 import com.bookmyshow.integrations.payment.PaymentGateway.PaymentOrder;
 import com.bookmyshow.modules.booking.BookingTypes.BookingResponse;
@@ -26,11 +28,19 @@ import com.bookmyshow.security.Roles;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class BookingServiceTest {
@@ -62,8 +72,7 @@ class BookingServiceTest {
 
     @Test
     void checkoutCreatesOrderInPaise() {
-        when(seatLockService.getActiveLock(LOCK_ID, ASHA))
-                .thenReturn(new ActiveLock(LOCK_ID, 7L, 50L, List.of(1L, 3L), new BigDecimal("650.00")));
+        when(seatLockService.getActiveLock(LOCK_ID, ASHA)).thenReturn(lock(List.of(1L, 3L), "650.00"));
         when(bookingRepository.findByLockId(LOCK_ID)).thenReturn(Optional.empty());
         when(bookingRepository.save(any(Booking.class))).thenAnswer(call -> withId(call.getArgument(0), 9L));
         when(paymentGateway.createOrder(65000, "INR", "booking-9"))
@@ -80,8 +89,7 @@ class BookingServiceTest {
 
     @Test
     void checkoutAgainReusesOrder() {
-        when(seatLockService.getActiveLock(LOCK_ID, ASHA))
-                .thenReturn(new ActiveLock(LOCK_ID, 7L, 50L, List.of(1L), new BigDecimal("200.00")));
+        when(seatLockService.getActiveLock(LOCK_ID, ASHA)).thenReturn(lock(List.of(1L), "200.00"));
         when(bookingRepository.findByLockId(LOCK_ID)).thenReturn(Optional.of(pending()));
 
         assertThat(bookingService.checkout(LOCK_ID, ASHA).razorpayOrderId()).isEqualTo("order_1");
@@ -163,8 +171,59 @@ class BookingServiceTest {
                 .isInstanceOf(ForbiddenException.class);
     }
 
+    @Test
+    void upcomingHistoryStartsTodaySoonestFirst() {
+        when(bookingRepository.findByUserIdAndShowDateGreaterThanEqualAndStatusIn(
+                        eq(7L), eq(LocalDate.of(2026, 10, 18)), any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(pending()), PageRequest.of(0, 20), 1));
+
+        PageResponse<BookingResponse> page = bookingService.listMine(ASHA, "upcoming", 0, 20);
+
+        assertThat(page.total()).isEqualTo(1);
+        assertThat(page.items())
+                .singleElement()
+                .satisfies(b -> assertThat(b.seatLabels()).containsExactly("A1"));
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        ArgumentCaptor<Collection<String>> statuses = ArgumentCaptor.captor();
+        verify(bookingRepository)
+                .findByUserIdAndShowDateGreaterThanEqualAndStatusIn(
+                        eq(7L), eq(LocalDate.of(2026, 10, 18)), statuses.capture(), pageable.capture());
+        assertThat(statuses.getValue()).doesNotContain(BookingStatus.PENDING_PAYMENT);
+        assertThat(pageable.getValue().getSort().getOrderFor("showDate").isAscending())
+                .isTrue();
+    }
+
+    @Test
+    void pastHistoryIsNewestFirst() {
+        when(bookingRepository.findByUserIdAndShowDateLessThanAndStatusIn(
+                        eq(7L), eq(LocalDate.of(2026, 10, 18)), any(), any(Pageable.class)))
+                .thenReturn(Page.empty());
+
+        assertThat(bookingService.listMine(ASHA, "past", 0, 20).items()).isEmpty();
+
+        ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
+        verify(bookingRepository).findByUserIdAndShowDateLessThanAndStatusIn(eq(7L), any(), any(), pageable.capture());
+        assertThat(pageable.getValue().getSort().getOrderFor("showDate").isDescending())
+                .isTrue();
+    }
+
+    static ActiveLock lock(List<Long> seatIds, String total) {
+        return new ActiveLock(
+                LOCK_ID,
+                7L,
+                50L,
+                seatIds,
+                new BigDecimal(total),
+                10L,
+                "Screen 1",
+                "Sky Riders",
+                LocalDate.of(2026, 10, 18),
+                LocalTime.of(18, 0),
+                seatIds.stream().map(id -> "A" + id).toList());
+    }
+
     static Booking pending() {
-        Booking booking = new Booking(7L, 50L, List.of(1L), new BigDecimal("200.00"), "INR", LOCK_ID, Instant.now());
+        Booking booking = new Booking(lock(List.of(1L), "200.00"), "INR", Instant.now());
         booking.attachOrder("order_1");
         return withId(booking, 9L);
     }

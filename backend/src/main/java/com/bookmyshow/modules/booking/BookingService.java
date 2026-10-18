@@ -4,6 +4,7 @@ import com.bookmyshow.common.error.BadRequestException;
 import com.bookmyshow.common.error.ConflictException;
 import com.bookmyshow.common.error.ForbiddenException;
 import com.bookmyshow.common.error.NotFoundException;
+import com.bookmyshow.common.response.PageResponse;
 import com.bookmyshow.integrations.payment.PaymentGateway;
 import com.bookmyshow.integrations.payment.PaymentGateway.PaymentOrder;
 import com.bookmyshow.modules.booking.BookingTypes.BookingResponse;
@@ -14,6 +15,11 @@ import com.bookmyshow.modules.show.ShowSeatLockService;
 import com.bookmyshow.modules.show.ShowTypes.ActiveLock;
 import com.bookmyshow.security.CurrentUser;
 import java.time.Clock;
+import java.time.LocalDate;
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +37,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class BookingService {
 
     static final String CURRENCY = "INR";
+    static final String UPCOMING = "upcoming";
+
+    /** Shown in history. PENDING_PAYMENT is left out, because unpaid checkouts are noise. */
+    private static final List<String> HISTORY_STATUSES =
+            List.of(BookingStatus.CONFIRMED, BookingStatus.FAILED, BookingStatus.NEEDS_REFUND);
 
     private final BookingRepository bookingRepository;
     private final ShowSeatLockService seatLockService;
@@ -57,8 +68,7 @@ public class BookingService {
         ActiveLock lock = seatLockService.getActiveLock(lockId, user);
         Booking booking = bookingRepository.findByLockId(lockId).orElse(null);
         if (booking == null) {
-            booking = bookingRepository.save(new Booking(
-                    user.id(), lock.showId(), lock.seatIds(), lock.totalPrice(), CURRENCY, lockId, clock.instant()));
+            booking = bookingRepository.save(new Booking(lock, CURRENCY, clock.instant()));
             PaymentOrder order = paymentGateway.createOrder(toPaise(booking), CURRENCY, "booking-" + booking.getId());
             booking.attachOrder(order.id());
         } else if (!booking.awaitsPayment()) {
@@ -97,6 +107,25 @@ public class BookingService {
                     + bookingId + " will be refunded.");
         }
         return BookingResponse.from(booking);
+    }
+
+    /**
+     * The user's bookings. "upcoming" is shows from today on, soonest first. "past" is older shows, newest first.
+     * Unpaid checkouts are left out.
+     */
+    public PageResponse<BookingResponse> listMine(CurrentUser user, String when, int page, int size) {
+        LocalDate today = LocalDate.now(clock);
+        Page<Booking> result;
+        if (UPCOMING.equals(when)) {
+            Sort soonest = Sort.by("showDate", "startTime").ascending();
+            result = bookingRepository.findByUserIdAndShowDateGreaterThanEqualAndStatusIn(
+                    user.id(), today, HISTORY_STATUSES, PageRequest.of(page, size, soonest));
+        } else {
+            Sort newest = Sort.by("showDate", "startTime").descending();
+            result = bookingRepository.findByUserIdAndShowDateLessThanAndStatusIn(
+                    user.id(), today, HISTORY_STATUSES, PageRequest.of(page, size, newest));
+        }
+        return PageResponse.of(result, BookingResponse::from);
     }
 
     public BookingResponse get(long bookingId, CurrentUser user) {

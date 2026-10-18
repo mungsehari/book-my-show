@@ -1,5 +1,6 @@
 package com.bookmyshow.modules.booking;
 
+import com.bookmyshow.modules.show.ShowTypes.ActiveLock;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,6 +9,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -55,24 +58,57 @@ public class Booking {
     @Column(name = "confirmed_at")
     private Instant confirmedAt;
 
+    // Ticket details, copied from the show at checkout.
+
+    @Column(name = "show_date", nullable = false)
+    private LocalDate showDate;
+
+    @Column(name = "start_time", nullable = false)
+    private LocalTime startTime;
+
+    @Column(name = "movie_name", nullable = false, length = 200)
+    private String movieName;
+
+    @Column(name = "cinema_id", nullable = false)
+    private Long cinemaId;
+
+    @Column(name = "screen_name", nullable = false, length = 50)
+    private String screenName;
+
+    /** Comma-separated, like "A1,A2". */
+    @Column(name = "seat_labels", nullable = false, length = 250)
+    private String seatLabels;
+
+    @Column(name = "checked_in_at")
+    private Instant checkedInAt;
+
+    @Column(name = "checked_in_by")
+    private Long checkedInBy;
+
     protected Booking() {}
 
-    public Booking(
-            Long userId,
-            Long showId,
-            List<Long> seatIds,
-            BigDecimal amount,
-            String currency,
-            String lockId,
-            Instant createdAt) {
-        this.userId = userId;
-        this.showId = showId;
-        this.seatIds = seatIds.stream().map(String::valueOf).collect(Collectors.joining(","));
-        this.amount = amount;
+    /** A new booking for the seats in a lock, waiting for payment. */
+    public Booking(ActiveLock lock, String currency, Instant createdAt) {
+        this.userId = lock.userId();
+        this.showId = lock.showId();
+        this.seatIds = lock.seatIds().stream().map(String::valueOf).collect(Collectors.joining(","));
+        this.amount = lock.totalPrice();
         this.currency = currency;
-        this.lockId = lockId;
+        this.lockId = lock.lockId();
         this.createdAt = createdAt;
         this.status = BookingStatus.PENDING_PAYMENT;
+        this.showDate = lock.showDate();
+        this.startTime = lock.startTime();
+        this.movieName = lock.movieName();
+        this.cinemaId = lock.cinemaId();
+        this.screenName = lock.screenName();
+        this.seatLabels = String.join(",", lock.seatLabels());
+    }
+
+    /** Records the entry scan. */
+    void checkIn(long staffUserId, Instant now) {
+        this.checkedInBy = staffUserId;
+        this.checkedInAt = now;
     }
 
     void attachOrder(String razorpayOrderId) {
@@ -142,5 +178,33 @@ public class Booking {
 
     public Instant getConfirmedAt() {
         return confirmedAt;
+    }
+
+    public LocalDate getShowDate() {
+        return showDate;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public String getMovieName() {
+        return movieName;
+    }
+
+    public Long getCinemaId() {
+        return cinemaId;
+    }
+
+    public String getScreenName() {
+        return screenName;
+    }
+
+    public List<String> getSeatLabels() {
+        return List.of(seatLabels.split(","));
+    }
+
+    public Instant getCheckedInAt() {
+        return checkedInAt;
     }
 }

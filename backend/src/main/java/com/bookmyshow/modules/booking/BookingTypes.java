@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 /** All request and response types for the booking module. */
@@ -35,7 +37,13 @@ public final class BookingTypes {
     public record BookingResponse(
             Long id,
             Long showId,
+            String movieName,
+            Long cinemaId,
+            String screenName,
+            LocalDate showDate,
+            LocalTime startTime,
             List<Long> seatIds,
+            List<String> seatLabels,
             String status,
             BigDecimal amount,
             String currency,
@@ -46,7 +54,13 @@ public final class BookingTypes {
             return new BookingResponse(
                     booking.getId(),
                     booking.getShowId(),
+                    booking.getMovieName(),
+                    booking.getCinemaId(),
+                    booking.getScreenName(),
+                    booking.getShowDate(),
+                    booking.getStartTime(),
                     booking.getSeatIds(),
+                    booking.getSeatLabels(),
                     booking.getStatus(),
                     booking.getAmount(),
                     booking.getCurrency(),
@@ -54,4 +68,23 @@ public final class BookingTypes {
                     booking.getConfirmedAt());
         }
     }
+
+    /**
+     * What the user shows at the entry. The frontend draws ticketCode as a QR code. The code is signed, so it cannot be
+     * made up, and it works only once.
+     */
+    public record TicketResponse(
+            Long bookingId,
+            String ticketCode,
+            String movieName,
+            String cinemaName,
+            String screenName,
+            LocalDate showDate,
+            LocalTime startTime,
+            List<String> seats,
+            BigDecimal amount,
+            String currency,
+            Instant checkedInAt) {}
+
+    public record CheckInRequest(@NotBlank @Size(max = 100) String ticketCode) {}
 }

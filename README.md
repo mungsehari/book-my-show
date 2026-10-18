@@ -56,6 +56,9 @@ Bookings and payment (Razorpay test mode):
 | `POST /api/v1/bookings` | Start payment for a lock, `{"lockId": "..."}`. Returns the Razorpay order ID, amount in paise, and key ID for checkout. Calling it again returns the same order. |
 | `POST /api/v1/bookings/{bookingId}/confirm` | Send what Razorpay checkout returned (`razorpayOrderId`, `razorpayPaymentId`, `razorpaySignature`). Checks the signature and sells the seats. |
 | `GET /api/v1/bookings/{bookingId}` | Your booking |
+| `GET /api/v1/bookings/me?when=upcoming&page=0&size=20` | Your bookings. `upcoming` (default, soonest first) or `past` (newest first). Unpaid checkouts are left out. Max 50 per page. |
+| `GET /api/v1/bookings/{bookingId}/ticket` | Ticket for a confirmed booking. The frontend shows `ticketCode` as a QR code. |
+| `POST /api/v1/admin/tickets/check-in` | Entry scan, `{"ticketCode": "..."}`. ADMIN, or a theatre admin of that cinema. Works once per ticket, only on the show day. |
 | `POST /api/v1/payments/razorpay/webhook` | Called by Razorpay. Checks `X-Razorpay-Signature`. Confirms the booking even if the user closed the page. |
 
 Sold seats show as `BOOKED`. A seat can be sold only once (a unique key in the database). If a payment arrives after the seats were sold to someone else, the booking becomes `NEEDS_REFUND`.

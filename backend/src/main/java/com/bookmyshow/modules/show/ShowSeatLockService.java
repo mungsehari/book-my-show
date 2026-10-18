@@ -9,6 +9,7 @@ import com.bookmyshow.modules.show.SeatLockStore.LockResult;
 import com.bookmyshow.modules.show.ShowTypes.ActiveLock;
 import com.bookmyshow.modules.show.ShowTypes.SeatLockResponse;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapResponse;
+import com.bookmyshow.modules.show.ShowTypes.SeatMapRow;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapSeat;
 import com.bookmyshow.modules.show.ShowTypes.SeatStatus;
 import com.bookmyshow.security.CurrentUser;
@@ -18,6 +19,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,11 +41,17 @@ public class ShowSeatLockService {
 
     private final ShowSeatMapService seatMapService;
     private final SeatLockStore seatLockStore;
+    private final ShowRepository showRepository;
     private final Clock clock;
 
-    public ShowSeatLockService(ShowSeatMapService seatMapService, SeatLockStore seatLockStore, Clock clock) {
+    public ShowSeatLockService(
+            ShowSeatMapService seatMapService,
+            SeatLockStore seatLockStore,
+            ShowRepository showRepository,
+            Clock clock) {
         this.seatMapService = seatMapService;
         this.seatLockStore = seatLockStore;
+        this.showRepository = showRepository;
         this.clock = clock;
     }
 
@@ -99,18 +108,40 @@ public class ShowSeatLockService {
      */
     public ActiveLock getActiveLock(String lockId, CurrentUser user) {
         HeldLock lock = ownedLock(lockId, user);
-        Map<Long, SeatMapSeat> seats = seatMapService.getSeatMap(lock.showId()).rows().stream()
-                .flatMap(row -> row.seats().stream())
-                .collect(Collectors.toMap(SeatMapSeat::id, Function.identity()));
+        SeatMapResponse map = seatMapService.getSeatMap(lock.showId());
+        Map<Long, SeatMapSeat> seats = new HashMap<>();
+        Map<Long, String> labels = new HashMap<>();
+        for (SeatMapRow row : map.rows()) {
+            for (SeatMapSeat seat : row.seats()) {
+                seats.put(seat.id(), seat);
+                labels.put(seat.id(), row.label() + seat.number());
+            }
+        }
         BigDecimal total = BigDecimal.ZERO;
+        List<String> seatLabels = new ArrayList<>();
         for (Long seatId : lock.seatIds()) {
             SeatMapSeat seat = seats.get(seatId);
             if (seat == null || seat.price() == null || SeatStatus.BOOKED.equals(seat.status())) {
                 throw new ConflictException("Seat " + seatId + " can no longer be sold. Pick again.");
             }
             total = total.add(seat.price());
+            seatLabels.add(labels.get(seatId));
         }
-        return new ActiveLock(lock.lockId(), lock.userId(), lock.showId(), lock.seatIds(), total);
+        Show show = showRepository
+                .findById(lock.showId())
+                .orElseThrow(() -> new NotFoundException("Show " + lock.showId() + " not found"));
+        return new ActiveLock(
+                lock.lockId(),
+                lock.userId(),
+                lock.showId(),
+                lock.seatIds(),
+                total,
+                show.getCinemaId(),
+                map.screenName(),
+                map.movieName(),
+                map.showDate(),
+                map.startTime(),
+                List.copyOf(seatLabels));
     }
 
     /** Used by the booking module once seats are sold. Does nothing if the lock already expired. */

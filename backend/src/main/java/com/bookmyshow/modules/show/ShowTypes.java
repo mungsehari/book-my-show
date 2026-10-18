@@ -79,8 +79,22 @@ public final class ShowTypes {
     public record SeatLockResponse(
             String lockId, Long showId, List<Long> seatIds, BigDecimal totalPrice, Instant expiresAt) {}
 
-    /** A lock that is still held, with what it costs now. Used by the booking module. */
-    public record ActiveLock(String lockId, long userId, long showId, List<Long> seatIds, BigDecimal totalPrice) {}
+    /**
+     * A lock that is still held, with what it costs now and the show details a ticket needs (copied onto the booking). Used by the booking
+     * module. seatLabels are like "A1", in the same order as seatIds.
+     */
+    public record ActiveLock(
+            String lockId,
+            long userId,
+            long showId,
+            List<Long> seatIds,
+            BigDecimal totalPrice,
+            long cinemaId,
+            String screenName,
+            String movieName,
+            LocalDate showDate,
+            LocalTime startTime,
+            List<String> seatLabels) {}
 
     /** Seat states on a show's seat map. */
     public static final class SeatStatus {

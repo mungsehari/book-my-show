@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.bookmyshow.bootstrap.TestLogins;
 import com.bookmyshow.bootstrap.WithSecurityConfig;
 import com.bookmyshow.common.error.UnauthorizedException;
+import com.bookmyshow.common.response.PageResponse;
 import com.bookmyshow.modules.booking.BookingTypes.BookingResponse;
 import com.bookmyshow.modules.booking.BookingTypes.CheckoutResponse;
 import com.bookmyshow.modules.booking.BookingTypes.ConfirmPaymentRequest;
@@ -21,6 +22,8 @@ import com.bookmyshow.security.CurrentUser;
 import com.bookmyshow.security.Roles;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +38,21 @@ class BookingControllerTest {
 
     private static final String LOCK_ID = "3f2b8c1e-7a4d-4e5f-9b6a-1c2d3e4f5a6b";
     private static final CurrentUser ASHA = new CurrentUser(7L, Roles.USER);
+    private static final BookingResponse CONFIRMED_BOOKING = new BookingResponse(
+            9L,
+            50L,
+            "Sky Riders",
+            10L,
+            "Screen 1",
+            LocalDate.of(2026, 10, 20),
+            LocalTime.of(18, 0),
+            List.of(1L),
+            List.of("A1"),
+            BookingStatus.CONFIRMED,
+            new BigDecimal("200.00"),
+            "INR",
+            Instant.parse("2026-10-18T05:00:00Z"),
+            Instant.parse("2026-10-18T05:02:00Z"));
 
     @Autowired
     private MockMvc mockMvc;
@@ -86,15 +104,7 @@ class BookingControllerTest {
     @Test
     void confirmReturnsBooking() throws Exception {
         when(bookingService.confirm(eq(9L), any(ConfirmPaymentRequest.class), eq(ASHA)))
-                .thenReturn(new BookingResponse(
-                        9L,
-                        50L,
-                        List.of(1L),
-                        BookingStatus.CONFIRMED,
-                        new BigDecimal("200.00"),
-                        "INR",
-                        Instant.parse("2026-10-18T05:00:00Z"),
-                        Instant.parse("2026-10-18T05:02:00Z")));
+                .thenReturn(CONFIRMED_BOOKING);
 
         mockMvc.perform(post("/api/v1/bookings/9/confirm")
                         .with(TestLogins.as(7L, Roles.USER))
@@ -104,6 +114,26 @@ class BookingControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CONFIRMED"));
+    }
+
+    @Test
+    void listsMyUpcomingBookings() throws Exception {
+        when(bookingService.listMine(ASHA, "upcoming", 0, 20))
+                .thenReturn(new PageResponse<>(List.of(CONFIRMED_BOOKING), 0, 20, 1, 1));
+
+        mockMvc.perform(get("/api/v1/bookings/me").with(TestLogins.as(7L, Roles.USER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.items[0].seatLabels[0]").value("A1"))
+                .andExpect(jsonPath("$.items[0].movieName").value("Sky Riders"));
+    }
+
+    @Test
+    void historyRejectsUnknownFilterAndHugePages() throws Exception {
+        mockMvc.perform(get("/api/v1/bookings/me").param("when", "soon").with(TestLogins.as(7L, Roles.USER)))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/v1/bookings/me").param("size", "500").with(TestLogins.as(7L, Roles.USER)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
