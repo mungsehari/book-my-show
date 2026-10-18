@@ -160,6 +160,8 @@ Start Postgres and Redis:
 docker compose up -d
 ```
 
+The whole schema is one migration, `V1__init_schema.sql`. It works only on an empty database. If your local database was made by the older V1 to V15 migrations, reset it first (the `postgres-data` Docker volume), or Flyway will fail on a checksum mismatch. New schema changes go in `V2__...` and later.
+
 Run the backend with sample data:
 
 ```bash
