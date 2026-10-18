@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "defaultMode": "plan",
+    "disableBypassPermissionsMode": "disable",
+    "ask": [
+      "Bash",
+      "Write",
+      "Edit",
+      "MultiEdit",
+      "NotebookEdit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "deny": [
+      "Bash(gh *)",
+      "Bash(rm *)",
+      "Bash(rmdir *)",
+      "Bash(sudo *)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Edit(/.agents/**)",
+      "Edit(/.githooks/**)",
+      "Edit(/.claude/settings.json)",
+      "Edit(/.cursor/hooks.json)",
+      "Edit(/.gemini/settings.json)",
+      "Edit(/.codex/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.agents/hooks/claude.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

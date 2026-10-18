@@ -1,0 +1,8 @@
+---
+description: Shared project rules for all agents
+alwaysApply: true
+---
+
+All project rules live in `AGENTS.md` at the repo root. Read and follow it. Do not add rules here.
+
+@AGENTS.md

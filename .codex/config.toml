@@ -1,0 +1,9 @@
+# Codex project config. Enforces AGENTS.md guardrails.
+# "untrusted" = Codex asks before running any command that is not a plain read.
+approval_policy = "untrusted"
+
+# Codex can only write inside this repo folder (Rule 5).
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = false

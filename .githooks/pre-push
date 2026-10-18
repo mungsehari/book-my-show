@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Thin wrapper. All logic lives in .agents/hooks/.
+exec "$(git rev-parse --show-toplevel)/.agents/hooks/pre-push.sh" "$@"

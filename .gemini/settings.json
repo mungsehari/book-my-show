@@ -1,0 +1,19 @@
+{
+  "security": {
+    "disableYoloMode": true
+  },
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "name": "repo-guardrails",
+            "type": "command",
+            "command": "$GEMINI_PROJECT_DIR/.agents/hooks/gemini.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

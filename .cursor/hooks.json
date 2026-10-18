@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [{ "command": ".agents/hooks/cursor.sh" }],
+    "beforeMCPExecution": [{ "command": ".agents/hooks/cursor.sh" }],
+    "beforeReadFile": [{ "command": ".agents/hooks/cursor.sh" }]
+  }
+}

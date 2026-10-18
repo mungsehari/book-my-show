@@ -1,0 +1,10 @@
+# Main compose file. Only lists services. Each service lives in docker/<service>/compose.yaml.
+# Start core services:      docker compose up -d
+# Also run the backend:     docker compose --profile app up -d --build
+name: book-my-show
+
+include:
+  - path: docker/postgres/compose.yaml
+    env_file: .env
+  - path: docker/backend/compose.yaml
+    env_file: .env
