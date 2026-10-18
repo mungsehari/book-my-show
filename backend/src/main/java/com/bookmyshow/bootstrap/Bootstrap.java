@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Import;
     ClockConfig.class,
     CorsConfig.class,
     DatabaseConfig.class,
+    HttpClientConfig.class,
     LoggingConfig.class,
     SecurityHeadersConfig.class,
     JwtConfig.class,
