@@ -63,6 +63,7 @@ class ShowCrowdServiceTest {
                 3L,
                 "Screen 1",
                 List.of(),
-                List.of(new SeatMapRow("A", List.of(seats))));
+                List.of(new SeatMapRow("A", List.of(seats))),
+                null);
     }
 }

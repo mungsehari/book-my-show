@@ -5,14 +5,19 @@ import com.bookmyshow.modules.screen.ScreenService;
 import com.bookmyshow.modules.screen.ScreenTypes.LayoutResponse;
 import com.bookmyshow.modules.screen.ScreenTypes.SeatResponse;
 import com.bookmyshow.modules.show.ShowTypes.CategoryPrice;
+import com.bookmyshow.modules.show.ShowTypes.DealInfo;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapResponse;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapRow;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapSeat;
 import com.bookmyshow.modules.show.ShowTypes.SeatStatus;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -28,23 +33,26 @@ public class ShowSeatMapService {
     private final ScreenService screenService;
     private final SeatLockStore seatLockStore;
     private final ShowSeatBookingService seatBookingService;
+    private final Clock clock;
 
     public ShowSeatMapService(
             ShowRepository showRepository,
             ShowPriceRepository showPriceRepository,
             ScreenService screenService,
             SeatLockStore seatLockStore,
-            ShowSeatBookingService seatBookingService) {
+            ShowSeatBookingService seatBookingService,
+            Clock clock) {
         this.showRepository = showRepository;
         this.showPriceRepository = showPriceRepository;
         this.screenService = screenService;
         this.seatLockStore = seatLockStore;
         this.seatBookingService = seatBookingService;
+        this.clock = clock;
     }
 
     /**
      * A seat is UNAVAILABLE if its category has no price, BOOKED if sold, LOCKED if someone holds it in checkout,
-     * else AVAILABLE.
+     * else AVAILABLE. Prices include a last-minute deal when one is running (see {@link ShowPricing}).
      */
     public SeatMapResponse getSeatMap(long showId) {
         Show show = showRepository
@@ -64,15 +72,28 @@ public class ShowSeatMapService {
         Set<Long> sold = seatBookingService.soldSeats(showId);
         Set<Long> locked = seatLockStore.lockedSeats(showId, seatIds);
 
+        // The deal depends on how full the show is, counting only seats for sale.
+        List<SeatResponse> forSale = layout.rows().stream()
+                .flatMap(row -> row.seats().stream())
+                .filter(seat -> prices.containsKey(seat.category()))
+                .toList();
+        long taken = forSale.stream()
+                .filter(seat -> sold.contains(seat.id()) || locked.contains(seat.id()))
+                .count();
+        int percentFull = forSale.isEmpty() ? 0 : (int) (taken * 100 / forSale.size());
+        DealInfo deal = ShowPricing.dealFor(show, LocalDateTime.now(clock), percentFull);
+        Map<String, BigDecimal> current = new HashMap<>();
+        prices.forEach((category, price) -> current.put(category, ShowPricing.apply(price, deal)));
+
         List<SeatMapRow> rows = layout.rows().stream()
                 .map(row -> new SeatMapRow(
                         row.label(),
                         row.seats().stream()
-                                .map(seat -> toSeat(seat, prices, sold, locked))
+                                .map(seat -> toSeat(seat, current, sold, locked))
                                 .toList()))
                 .toList();
         List<CategoryPrice> categoryPrices = prices.entrySet().stream()
-                .map(entry -> new CategoryPrice(entry.getKey(), entry.getValue()))
+                .map(entry -> new CategoryPrice(entry.getKey(), current.get(entry.getKey()), entry.getValue()))
                 .sorted(Comparator.comparing(CategoryPrice::price))
                 .toList();
 
@@ -85,7 +106,17 @@ public class ShowSeatMapService {
                 layout.screenId(),
                 layout.name(),
                 categoryPrices,
-                rows);
+                rows,
+                deal);
+    }
+
+    /** Used by price alerts. The cheapest seat a user could book right now, deal included. Empty if none is free. */
+    public Optional<BigDecimal> lowestAvailablePrice(long showId) {
+        return getSeatMap(showId).rows().stream()
+                .flatMap(row -> row.seats().stream())
+                .filter(seat -> SeatStatus.AVAILABLE.equals(seat.status()))
+                .map(SeatMapSeat::price)
+                .min(Comparator.naturalOrder());
     }
 
     private static SeatMapSeat toSeat(

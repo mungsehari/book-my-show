@@ -14,6 +14,7 @@ Backend boilerplate with read-only list APIs.
 | `GET /api/v1/cinemas/{cinemaId}/screens` | Screens in a cinema, with seat counts |
 | `GET /api/v1/screens/{screenId}/layout` | Seat layout of a screen, grouped by row |
 | `GET /api/v1/shows/{showId}/seats` | Seat map of a show: price, status, and wheelchair flag of every seat |
+| `GET /api/v1/screens/{screenId}/views` | Seat view photos: what the screen looks like from each block of rows |
 | `GET /api/v1/shows/{showId}/crowd` | Crowd meter: sold, held, available, percent full, and level (LOW, MEDIUM, HIGH, HOUSEFULL) |
 | `GET /api/v1/movies/{movieId}/reviews` | Verified reviews, newest first, with the average rating |
 | `GET /api/v1/cities/{cityId}/movies?date=yyyy-MM-dd` | Movies playing in a city on a date (default next 7 days) |
@@ -77,6 +78,12 @@ Cancel, refund, resale, waitlist:
 | `POST /api/v1/shows/{showId}/waitlist` | Join the waitlist of a full show, `{"seats": 2}` |
 | `GET /api/v1/waitlist/me?showId=` | Your place in the queue, or the `lockId` of seats held for you |
 | `POST /api/v1/waitlist/{entryId}/leave` | Leave the waitlist |
+
+Last-minute deals: in the last hour before a show, if it is less than 70% full, every seat costs 20% less (rounded to whole rupees). The seat map shows `deal` and each category's `originalPrice`. Admins can send `"lastMinuteDeals": false` when creating a show to keep it out.
+
+Price alerts (login needed): `POST /api/v1/price-alerts` with `{"movieId", "cityId", "maxPrice"}`, `GET /api/v1/price-alerts/me`, `POST /api/v1/price-alerts/{id}/cancel`. A job checks every 5 minutes and tells you once, about the soonest show in the next 7 days that is cheap enough. Up to 10 active alerts.
+
+Seat view photos (admin): `POST /api/v1/admin/screens/{screenId}/views` with `{"fromRow": "A", "toRow": "C", "imageUrl": "https://...", "caption"}`. Blocks on a screen may not overlap. Images are hosted elsewhere.
 
 Jobs run every minute: unpaid checkouts expire after 15 minutes, and waitlist offers nobody took in 10 minutes go to the next person. Notifications (waitlist offers, refunds) are written to the backend log for now.
 

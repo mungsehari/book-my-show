@@ -15,8 +15,11 @@ import com.bookmyshow.modules.show.ShowTypes.SeatMapResponse;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapSeat;
 import com.bookmyshow.modules.show.ShowTypes.SeatStatus;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -27,6 +30,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 class ShowSeatMapServiceTest {
 
     private static final LocalDate DATE = LocalDate.of(2026, 10, 20);
+
+    /** Two days before the test show at 2026-10-20 14:00, so no last-minute deal runs. */
+    private static final Clock FAR_AWAY = Clock.fixed(Instant.parse("2026-10-18T05:00:00Z"), ZoneOffset.UTC);
 
     private ShowRepository showRepository;
     private ShowPriceRepository showPriceRepository;
@@ -43,7 +49,7 @@ class ShowSeatMapServiceTest {
         seatLockStore = mock(SeatLockStore.class);
         seatBookingService = mock(ShowSeatBookingService.class);
         seatMapService = new ShowSeatMapService(
-                showRepository, showPriceRepository, screenService, seatLockStore, seatBookingService);
+                showRepository, showPriceRepository, screenService, seatLockStore, seatBookingService, FAR_AWAY);
     }
 
     @Test
@@ -159,6 +165,51 @@ class ShowSeatMapServiceTest {
         assertThatThrownBy(() -> seatMapService.getSeatMap(99L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("Show 99 not found");
+    }
+
+    @Test
+    void lastHourDealLowersPricesAndShowsOriginal() {
+        // The show is 2026-10-20 14:00. The clock is 13:30, and nothing is sold: the deal runs.
+        ShowSeatMapService lastHour = new ShowSeatMapService(
+                showRepository,
+                showPriceRepository,
+                screenService,
+                seatLockStore,
+                seatBookingService,
+                Clock.fixed(Instant.parse("2026-10-20T13:30:00Z"), ZoneOffset.UTC));
+        stubOneRegularSeat();
+
+        SeatMapResponse map = lastHour.getSeatMap(50L);
+
+        assertThat(map.deal()).isNotNull();
+        assertThat(map.deal().percentOff()).isEqualTo(20);
+        assertThat(map.rows().get(0).seats().get(0).price()).isEqualByComparingTo("160.00");
+        assertThat(map.prices().get(0).price()).isEqualByComparingTo("160.00");
+        assertThat(map.prices().get(0).originalPrice()).isEqualByComparingTo("200.00");
+        assertThat(lastHour.lowestAvailablePrice(50L))
+                .hasValueSatisfying(price -> assertThat(price).isEqualByComparingTo("160.00"));
+    }
+
+    @Test
+    void noFreeSeatMeansNoLowestPrice() {
+        stubOneRegularSeat();
+        when(seatBookingService.soldSeats(50L)).thenReturn(Set.of(1L));
+
+        assertThat(seatMapService.lowestAvailablePrice(50L)).isEmpty();
+        assertThat(seatMapService.getSeatMap(50L).deal()).isNull();
+    }
+
+    private void stubOneRegularSeat() {
+        when(showRepository.findById(50L)).thenReturn(Optional.of(show(3L)));
+        when(screenService.getLayout(3L))
+                .thenReturn(new LayoutResponse(
+                        3L,
+                        10L,
+                        "Screen 1",
+                        1,
+                        List.of(new RowResponse("A", List.of(new SeatResponse(1L, 1, "REGULAR", false))))));
+        when(showPriceRepository.findAllByShowId(50L))
+                .thenReturn(List.of(new ShowPrice(50L, "REGULAR", new BigDecimal("200.00"))));
     }
 
     private static Show show(Long screenId) {

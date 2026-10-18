@@ -15,6 +15,9 @@ interface ShowRepository extends JpaRepository<Show, Long> {
 
     List<Show> findAllByScreenIdAndShowDate(Long screenId, LocalDate showDate);
 
+    List<Show> findByCinemaIdInAndMovieIdAndShowDateBetweenOrderByShowDateAscStartTimeAsc(
+            Collection<Long> cinemaIds, Long movieId, LocalDate from, LocalDate to);
+
     /** Locks the show row until the transaction ends, so seat sales for one show run one at a time. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from Show s where s.id = :id")

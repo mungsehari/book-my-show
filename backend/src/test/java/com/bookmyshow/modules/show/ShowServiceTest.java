@@ -121,11 +121,44 @@ class ShowServiceTest {
         when(showRepository.save(any(Show.class))).thenAnswer(call -> call.getArgument(0));
 
         ShowResponse created = showService.create(
-                3L, new CreateShowRequest(2L, SHOW_DATE, LocalTime.of(14, 0), PRICES, true, null, true), ADMIN);
+                3L, new CreateShowRequest(2L, SHOW_DATE, LocalTime.of(14, 0), PRICES, true, null, true, null), ADMIN);
 
         assertThat(created.quiet()).isTrue();
         assertThat(created.sensoryFriendly()).isFalse();
         assertThat(created.subtitles()).isTrue();
+    }
+
+    @Test
+    void theatreCanTurnOffDeals() {
+        when(screenService.lockAndGetCinemaId(3L)).thenReturn(10L);
+        when(movieService.getMovie(2L)).thenReturn(SKY_RIDERS);
+        when(showRepository.save(any(Show.class))).thenAnswer(call -> call.getArgument(0));
+
+        showService.create(
+                3L, new CreateShowRequest(2L, SHOW_DATE, LocalTime.of(14, 0), PRICES, null, null, null, false), ADMIN);
+
+        ArgumentCaptor<Show> saved = ArgumentCaptor.forClass(Show.class);
+        verify(showRepository).save(saved.capture());
+        assertThat(saved.getValue().isDealsEnabled()).isFalse();
+    }
+
+    @Test
+    void upcomingShowsSkipStartedAndScreenless() {
+        // The clock is 2026-10-18 01:30 in India.
+        Show started =
+                new Show(10L, 3L, 2L, "Sky Riders", LocalDate.of(2026, 10, 18), LocalTime.of(1, 0), BigDecimal.TEN);
+        Show noScreen =
+                new Show(10L, null, 2L, "Sky Riders", LocalDate.of(2026, 10, 18), LocalTime.of(9, 0), BigDecimal.TEN);
+        Show later =
+                new Show(10L, 3L, 2L, "Sky Riders", LocalDate.of(2026, 10, 18), LocalTime.of(18, 0), BigDecimal.TEN);
+        when(cinemaService.listIdsByCity(1L)).thenReturn(List.of(10L));
+        when(showRepository.findByCinemaIdInAndMovieIdAndShowDateBetweenOrderByShowDateAscStartTimeAsc(
+                        List.of(10L), 2L, LocalDate.of(2026, 10, 18), LocalDate.of(2026, 10, 24)))
+                .thenReturn(List.of(started, noScreen, later));
+
+        assertThat(showService.listUpcomingForMovieInCity(2L, 1L))
+                .singleElement()
+                .satisfies(show -> assertThat(show.startTime()).isEqualTo(LocalTime.of(18, 0)));
     }
 
     private static Show show(long screenId, boolean quiet, boolean subtitles) {
@@ -213,7 +246,14 @@ class ShowServiceTest {
         when(screenService.lockAndGetCinemaId(3L)).thenReturn(10L);
         when(movieService.getMovie(2L)).thenReturn(SKY_RIDERS);
         CreateShowRequest onlyRegular = new CreateShowRequest(
-                2L, SHOW_DATE, LocalTime.of(14, 0), Map.of("REGULAR", new BigDecimal("200.00")), null, null, null);
+                2L,
+                SHOW_DATE,
+                LocalTime.of(14, 0),
+                Map.of("REGULAR", new BigDecimal("200.00")),
+                null,
+                null,
+                null,
+                null);
 
         assertThatThrownBy(() -> showService.create(3L, onlyRegular, ADMIN))
                 .isInstanceOf(BadRequestException.class)
@@ -233,6 +273,7 @@ class ShowServiceTest {
                         "REGULAR", new BigDecimal("200.00"),
                         "PREMIUM", new BigDecimal("300.00"),
                         "RECLINER", new BigDecimal("500.00")),
+                null,
                 null,
                 null,
                 null);
@@ -275,8 +316,8 @@ class ShowServiceTest {
         when(screenService.lockAndGetCinemaId(3L)).thenReturn(10L);
         when(movieService.getMovie(2L)).thenReturn(SKY_RIDERS);
         // The clock is 2026-10-18 01:30 in India.
-        CreateShowRequest past =
-                new CreateShowRequest(2L, LocalDate.of(2026, 10, 18), LocalTime.of(1, 0), PRICES, null, null, null);
+        CreateShowRequest past = new CreateShowRequest(
+                2L, LocalDate.of(2026, 10, 18), LocalTime.of(1, 0), PRICES, null, null, null, null);
 
         assertThatThrownBy(() -> showService.create(3L, past, ADMIN))
                 .isInstanceOf(BadRequestException.class)
@@ -297,7 +338,7 @@ class ShowServiceTest {
     }
 
     private static CreateShowRequest request(LocalTime startTime) {
-        return new CreateShowRequest(2L, SHOW_DATE, startTime, PRICES, null, null, null);
+        return new CreateShowRequest(2L, SHOW_DATE, startTime, PRICES, null, null, null, null);
     }
 
     @Test

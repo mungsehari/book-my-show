@@ -160,11 +160,12 @@ class ShowControllerTest {
                         LocalTime.of(14, 0),
                         3L,
                         "Screen 1",
-                        List.of(new CategoryPrice("REGULAR", new BigDecimal("200.00"))),
+                        List.of(new CategoryPrice("REGULAR", new BigDecimal("200.00"), new BigDecimal("200.00"))),
                         List.of(new SeatMapRow(
                                 "A",
                                 List.of(new SeatMapSeat(
-                                        1L, 1, "REGULAR", new BigDecimal("200.00"), SeatStatus.AVAILABLE, false))))));
+                                        1L, 1, "REGULAR", new BigDecimal("200.00"), SeatStatus.AVAILABLE, false)))),
+                        null));
 
         mockMvc.perform(get("/api/v1/shows/50/seats"))
                 .andExpect(status().isOk())

@@ -46,5 +46,29 @@ public final class ScreenTypes {
 
     public record RowResponse(String label, List<SeatResponse> seats) {}
 
+    /** A seat view photo for rows fromRow to toRow (inclusive). Only https URLs. */
+    public record CreateScreenViewRequest(
+            @NotBlank @Pattern(regexp = "^[A-Z]$") String fromRow,
+            @NotBlank @Pattern(regexp = "^[A-Z]$") String toRow,
+
+            @NotBlank @Size(max = 500) @Pattern(regexp = "^https://\\S+$")
+            String imageUrl,
+
+            @Size(max = 200) String caption) {}
+
+    public record ScreenViewResponse(
+            Long id, Long screenId, String fromRow, String toRow, String imageUrl, String caption) {
+
+        static ScreenViewResponse from(ScreenView view) {
+            return new ScreenViewResponse(
+                    view.getId(),
+                    view.getScreenId(),
+                    view.getFromRow(),
+                    view.getToRow(),
+                    view.getImageUrl(),
+                    view.getCaption());
+        }
+    }
+
     public record LayoutResponse(Long screenId, Long cinemaId, String name, long seatCount, List<RowResponse> rows) {}
 }

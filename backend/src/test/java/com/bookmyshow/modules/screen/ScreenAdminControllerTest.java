@@ -35,6 +35,31 @@ class ScreenAdminControllerTest {
     @MockitoBean
     private ScreenService screenService;
 
+    @MockitoBean
+    private ScreenViewService screenViewService;
+
+    @Test
+    void seatViewNeedsHttpsUrl() throws Exception {
+        mockMvc.perform(
+                        post("/api/v1/admin/screens/3/views")
+                                .with(TestLogins.as(1L, Roles.ADMIN))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"fromRow\": \"A\", \"toRow\": \"C\", \"imageUrl\": \"http://img.example.com/a.jpg\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void plainUserCannotAddSeatView() throws Exception {
+        mockMvc.perform(
+                        post("/api/v1/admin/screens/3/views")
+                                .with(TestLogins.as(5L, Roles.USER))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"fromRow\": \"A\", \"toRow\": \"C\", \"imageUrl\": \"https://img.example.com/a.jpg\"}"))
+                .andExpect(status().isForbidden());
+    }
+
     @Test
     void theatreAdminCreatesScreen() throws Exception {
         when(screenService.create(

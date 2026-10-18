@@ -89,6 +89,28 @@ public class ShowService {
         return shows.stream().map(ShowResponse::from).toList();
     }
 
+    /**
+     * Used by price alerts. Shows of a movie in a city that have a seat map and have not started, from now to the end of
+     * the next {@link #NOW_SHOWING_DAYS} days, soonest first. Fails if the city does not exist.
+     */
+    public List<ShowResponse> listUpcomingForMovieInCity(long movieId, long cityId) {
+        List<Long> cinemaIds = cinemaService.listIdsByCity(cityId);
+        if (cinemaIds.isEmpty()) {
+            return List.of();
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDate today = now.toLocalDate();
+        return showRepository
+                .findByCinemaIdInAndMovieIdAndShowDateBetweenOrderByShowDateAscStartTimeAsc(
+                        cinemaIds, movieId, today, today.plusDays(NOW_SHOWING_DAYS - 1))
+                .stream()
+                .filter(show -> show.getScreenId() != null)
+                .filter(show -> LocalDateTime.of(show.getShowDate(), show.getStartTime())
+                        .isAfter(now))
+                .map(ShowResponse::from)
+                .toList();
+    }
+
     /** Lists movies playing in a city on a date. No date means the next 7 days, today included. */
     public List<MovieResponse> listMoviesInCity(long cityId, LocalDate date) {
         List<Long> cinemaIds = cinemaService.listIdsByCity(cityId);

@@ -248,6 +248,7 @@ class ShowSeatLockServiceTest {
                                                 "RECLINER",
                                                 new BigDecimal("450.00"),
                                                 SeatStatus.BOOKED,
-                                                false)))));
+                                                false)))),
+                null);
     }
 }

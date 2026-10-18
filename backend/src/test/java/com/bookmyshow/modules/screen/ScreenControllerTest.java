@@ -28,6 +28,21 @@ class ScreenControllerTest {
     @MockitoBean
     private ScreenService screenService;
 
+    @MockitoBean
+    private ScreenViewService screenViewService;
+
+    @Test
+    void seatViewsArePublic() throws Exception {
+        when(screenViewService.list(3L))
+                .thenReturn(List.of(new ScreenTypes.ScreenViewResponse(
+                        1L, 3L, "A", "C", "https://img.example.com/front.jpg", "Front rows")));
+
+        mockMvc.perform(get("/api/v1/screens/3/views"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].fromRow").value("A"))
+                .andExpect(jsonPath("$.items[0].imageUrl").value("https://img.example.com/front.jpg"));
+    }
+
     @Test
     void listsScreensInCinema() throws Exception {
         when(screenService.listByCinema(10L)).thenReturn(List.of(new ScreenResponse(1L, 10L, "Screen 1", 116L)));
