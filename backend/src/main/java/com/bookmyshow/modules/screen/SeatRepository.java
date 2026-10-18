@@ -9,6 +9,9 @@ interface SeatRepository extends JpaRepository<Seat, Long> {
 
     List<Seat> findAllByScreenIdOrderByRowLabelAscSeatNumberAsc(Long screenId);
 
+    @Query("select distinct s.category from Seat s where s.screenId = :screenId")
+    List<String> findCategoriesByScreenId(Long screenId);
+
     /** Seat count per screen, in one query. Screens with no seats are left out. */
     @Query("""
             select s.screenId as screenId, count(s) as seatCount

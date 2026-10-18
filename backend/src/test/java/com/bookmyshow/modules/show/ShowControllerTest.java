@@ -10,6 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.bookmyshow.bootstrap.WithSecurityConfig;
 import com.bookmyshow.common.error.NotFoundException;
 import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
+import com.bookmyshow.modules.show.ShowTypes.CategoryPrice;
+import com.bookmyshow.modules.show.ShowTypes.SeatMapResponse;
+import com.bookmyshow.modules.show.ShowTypes.SeatMapRow;
+import com.bookmyshow.modules.show.ShowTypes.SeatMapSeat;
+import com.bookmyshow.modules.show.ShowTypes.SeatStatus;
 import com.bookmyshow.modules.show.ShowTypes.ShowResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -32,6 +37,9 @@ class ShowControllerTest {
 
     @MockitoBean
     private ShowService showService;
+
+    @MockitoBean
+    private ShowSeatMapService showSeatMapService;
 
     @Test
     void listsShowsForDate() throws Exception {
@@ -106,5 +114,38 @@ class ShowControllerTest {
         mockMvc.perform(get("/api/v1/cities/99/movies").param("date", "2026-10-17"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("City 99 not found"));
+    }
+
+    @Test
+    void getsSeatMapWithoutLogin() throws Exception {
+        when(showSeatMapService.getSeatMap(50L))
+                .thenReturn(new SeatMapResponse(
+                        50L,
+                        2L,
+                        "Sky Riders",
+                        DATE,
+                        LocalTime.of(14, 0),
+                        3L,
+                        "Screen 1",
+                        List.of(new CategoryPrice("REGULAR", new BigDecimal("200.00"))),
+                        List.of(new SeatMapRow(
+                                "A",
+                                List.of(new SeatMapSeat(
+                                        1L, 1, "REGULAR", new BigDecimal("200.00"), SeatStatus.AVAILABLE))))));
+
+        mockMvc.perform(get("/api/v1/shows/50/seats"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.screenName").value("Screen 1"))
+                .andExpect(jsonPath("$.rows[0].seats[0].status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.prices[0].price").value(200.00));
+    }
+
+    @Test
+    void returns404WhenShowHasNoSeatMap() throws Exception {
+        when(showSeatMapService.getSeatMap(99L)).thenThrow(new NotFoundException("Show 99 not found"));
+
+        mockMvc.perform(get("/api/v1/shows/99/seats"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Show 99 not found"));
     }
 }

@@ -10,13 +10,17 @@ import com.bookmyshow.modules.screen.ScreenService;
 import com.bookmyshow.modules.show.ShowTypes.CreateShowRequest;
 import com.bookmyshow.modules.show.ShowTypes.ShowResponse;
 import com.bookmyshow.security.CurrentUser;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +39,7 @@ public class ShowService {
     static final Duration UNKNOWN_LENGTH = Duration.ofMinutes(180);
 
     private final ShowRepository showRepository;
+    private final ShowPriceRepository showPriceRepository;
     private final CinemaService cinemaService;
     private final CinemaAccessService cinemaAccessService;
     private final ScreenService screenService;
@@ -43,12 +48,14 @@ public class ShowService {
 
     public ShowService(
             ShowRepository showRepository,
+            ShowPriceRepository showPriceRepository,
             CinemaService cinemaService,
             CinemaAccessService cinemaAccessService,
             ScreenService screenService,
             MovieService movieService,
             Clock clock) {
         this.showRepository = showRepository;
+        this.showPriceRepository = showPriceRepository;
         this.cinemaService = cinemaService;
         this.cinemaAccessService = cinemaAccessService;
         this.screenService = screenService;
@@ -90,18 +97,29 @@ public class ShowService {
         if (!start.isAfter(LocalDateTime.now(clock))) {
             throw new BadRequestException("Show must start in the future");
         }
+        ensurePricesMatchScreen(screenId, request.prices().keySet());
         LocalDateTime end = start.plus(blockedTime(movie.durationMinutes()));
         ensureNoOverlap(screenId, request.showDate(), start, end);
 
+        BigDecimal lowest = Collections.min(request.prices().values());
         Show show = showRepository.save(new Show(
-                cinemaId,
-                screenId,
-                movie.id(),
-                movie.title(),
-                request.showDate(),
-                request.startTime(),
-                request.price()));
+                cinemaId, screenId, movie.id(), movie.title(), request.showDate(), request.startTime(), lowest));
+        showPriceRepository.saveAll(request.prices().entrySet().stream()
+                .map(entry -> new ShowPrice(show.getId(), entry.getKey(), entry.getValue()))
+                .toList());
         return ShowResponse.from(show);
+    }
+
+    /** Every seat category on the screen needs a price, and no price may name a category the screen lacks. */
+    private void ensurePricesMatchScreen(long screenId, Set<String> priced) {
+        Set<String> onScreen = screenService.listCategories(screenId);
+        if (onScreen.isEmpty()) {
+            throw new BadRequestException("Screen " + screenId + " has no seats");
+        }
+        if (!priced.equals(onScreen)) {
+            throw new BadRequestException("Prices must cover exactly the seat categories on screen " + screenId + ": "
+                    + new TreeSet<>(onScreen));
+        }
     }
 
     private void ensureNoOverlap(long screenId, LocalDate date, LocalDateTime start, LocalDateTime end) {

@@ -63,3 +63,21 @@ UPDATE shows s
 SET movie_id = (SELECT m.id FROM movies m WHERE m.title = s.movie_name)
 WHERE s.movie_id IS NULL
   AND (SELECT COUNT(*) FROM movies m WHERE m.title = s.movie_name) = 1;
+
+-- Put sample shows on Screen 1 of their cinema. The sample times on one cinema do not overlap.
+UPDATE shows s
+SET screen_id = sc.id
+FROM screens sc
+WHERE s.screen_id IS NULL
+  AND sc.cinema_id = s.cinema_id
+  AND sc.name = 'Screen 1';
+
+-- Category prices for sample shows: regular is the show price, premium +100, recliner +250.
+-- Shows that already have prices (for example, made through the admin API) are left alone.
+INSERT INTO show_prices (show_id, category, price)
+SELECT s.id, p.category, s.price + p.extra
+FROM shows s
+CROSS JOIN (VALUES ('REGULAR', 0), ('PREMIUM', 100), ('RECLINER', 250)) AS p (category, extra)
+WHERE s.screen_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM show_prices sp WHERE sp.show_id = s.id)
+ON CONFLICT (show_id, category) DO NOTHING;

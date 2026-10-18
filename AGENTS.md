@@ -38,9 +38,10 @@ Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 | Auth | Spring Security, JWT (HS256) via OAuth2 resource server, BCrypt |
 | API docs | springdoc OpenAPI (Swagger UI) |
 | Tests | JUnit 5, MockMvc |
+| Cache and locks | Redis (seat locks, with Lua scripts) |
 | Local infra | Docker Compose |
 | Frontend | Next.js (planned) |
-| Later | Redis (cache, seat lock), Elasticsearch (search) |
+| Later | Elasticsearch (search) |
 
 ## Project structure
 
@@ -72,7 +73,7 @@ Structure rules:
 
 - Each service has its own folder in `docker/<service>/` with its own `compose.yaml`.
 - The root `compose.yaml` only lists `include:` entries.
-- Core services (postgres) have no profile. Optional ones use profiles (`app` for the backend in Docker, later `search`, `mongo`, `proxy`).
+- Core services (postgres, redis) have no profile. Optional ones use profiles (`app` for the backend in Docker, later `search`, `mongo`, `proxy`).
 - Pin image versions. Never use `latest`.
 - Every service has a healthcheck. Use `depends_on` with `condition: service_healthy`.
 - Store data in named volumes.
@@ -92,8 +93,8 @@ Run from the repo root unless noted.
 
 | Task | Command |
 |---|---|
-| First time setup | `cp .env.example .env`, then set `DB_PASSWORD` and `JWT_SECRET` |
-| Start database | `docker compose up -d` |
+| First time setup | `cp .env.example .env`, then set `DB_PASSWORD`, `REDIS_PASSWORD`, and `JWT_SECRET` |
+| Start database and Redis | `docker compose up -d` |
 | Backend in Docker | `docker compose --profile app up -d --build` |
 | Format check and tests | `./scripts/ci/check.sh` |
 | Run backend | `cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=local` |

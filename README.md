@@ -13,6 +13,7 @@ Backend boilerplate with read-only list APIs.
 | `GET /api/v1/cinemas/{cinemaId}/shows?date=yyyy-MM-dd` | Shows at a cinema on a date (default today) |
 | `GET /api/v1/cinemas/{cinemaId}/screens` | Screens in a cinema, with seat counts |
 | `GET /api/v1/screens/{screenId}/layout` | Seat layout of a screen, grouped by row |
+| `GET /api/v1/shows/{showId}/seats` | Seat map of a show: price and status of every seat |
 | `GET /api/v1/cities/{cityId}/movies?date=yyyy-MM-dd` | Movies playing in a city on a date (default next 7 days) |
 | `GET /api/v1/movies?language=Hindi` | All movies, or movies in one language |
 | `GET /api/v1/movies/{movieId}` | One movie |
@@ -35,9 +36,18 @@ Admin (send `Authorization: Bearer <token>`):
 | `POST /api/v1/admin/movies` | ADMIN |
 | `POST /api/v1/admin/cinemas/{cinemaId}/admins` | ADMIN. Makes the user a theatre admin of that cinema. |
 | `POST /api/v1/admin/cinemas/{cinemaId}/screens` | ADMIN, or a theatre admin of that cinema |
-| `POST /api/v1/admin/screens/{screenId}/shows` | ADMIN, or a theatre admin of that cinema. Rejects overlapping shows. |
+| `POST /api/v1/admin/screens/{screenId}/shows` | ADMIN, or a theatre admin of that cinema. Needs a price for every seat category on the screen, for example `"prices": {"REGULAR": 200, "PREMIUM": 300}`. Rejects overlapping shows. |
 
 The first admin: put your email in `ADMIN_EMAILS` in `.env`, then sign up with it.
+
+Seat locks (any logged-in user):
+
+| API | Does |
+|---|---|
+| `POST /api/v1/shows/{showId}/locks` | Hold up to 10 seats for 10 minutes, for example `{"seatIds": [12, 13]}`. All or none. One lock per user per show. Returns `lockId` and the total price. |
+| `POST /api/v1/locks/{lockId}/release` | Give the seats back early |
+
+Held seats show as `LOCKED` on the seat map for everyone.
 
 Stack: Java 21, Spring Boot 4, PostgreSQL, Flyway, Docker Compose. See `AGENTS.md` for structure and rules.
 
@@ -62,13 +72,13 @@ After cloning, enable the shared git hooks:
 ./.agents/setup.sh
 ```
 
-Create your env file and set `DB_PASSWORD` and `JWT_SECRET`:
+Create your env file and set `DB_PASSWORD`, `REDIS_PASSWORD`, and `JWT_SECRET`:
 
 ```bash
 cp .env.example .env
 ```
 
-Start Postgres:
+Start Postgres and Redis:
 
 ```bash
 docker compose up -d

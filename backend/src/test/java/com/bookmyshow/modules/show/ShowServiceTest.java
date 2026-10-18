@@ -30,8 +30,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class ShowServiceTest {
 
@@ -43,7 +46,11 @@ class ShowServiceTest {
     private static final MovieResponse SKY_RIDERS = new MovieResponse(
             2L, "Sky Riders", "Plot.", "English", "Action", 128, "UA", LocalDate.of(2026, 10, 2), null);
 
+    private static final Map<String, BigDecimal> PRICES =
+            Map.of("REGULAR", new BigDecimal("200.00"), "PREMIUM", new BigDecimal("300.00"));
+
     private ShowRepository showRepository;
+    private ShowPriceRepository showPriceRepository;
     private CinemaService cinemaService;
     private CinemaAccessService cinemaAccessService;
     private ScreenService screenService;
@@ -53,12 +60,20 @@ class ShowServiceTest {
     @BeforeEach
     void setUp() {
         showRepository = mock(ShowRepository.class);
+        showPriceRepository = mock(ShowPriceRepository.class);
         cinemaService = mock(CinemaService.class);
         cinemaAccessService = mock(CinemaAccessService.class);
         screenService = mock(ScreenService.class);
         movieService = mock(MovieService.class);
-        showService =
-                new ShowService(showRepository, cinemaService, cinemaAccessService, screenService, movieService, CLOCK);
+        when(screenService.listCategories(3L)).thenReturn(Set.of("REGULAR", "PREMIUM"));
+        showService = new ShowService(
+                showRepository,
+                showPriceRepository,
+                cinemaService,
+                cinemaAccessService,
+                screenService,
+                movieService,
+                CLOCK);
     }
 
     @Test
@@ -143,6 +158,41 @@ class ShowServiceTest {
         assertThat(created.cinemaId()).isEqualTo(10L);
         assertThat(created.screenId()).isEqualTo(3L);
         assertThat(created.movieName()).isEqualTo("Sky Riders");
+        assertThat(created.price()).isEqualByComparingTo("200.00");
+        ArgumentCaptor<List<ShowPrice>> prices = ArgumentCaptor.captor();
+        verify(showPriceRepository).saveAll(prices.capture());
+        assertThat(prices.getValue())
+                .extracting(ShowPrice::getCategory)
+                .containsExactlyInAnyOrder("REGULAR", "PREMIUM");
+    }
+
+    @Test
+    void rejectsMissingCategoryPrice() {
+        when(screenService.lockAndGetCinemaId(3L)).thenReturn(10L);
+        when(movieService.getMovie(2L)).thenReturn(SKY_RIDERS);
+        CreateShowRequest onlyRegular =
+                new CreateShowRequest(2L, SHOW_DATE, LocalTime.of(14, 0), Map.of("REGULAR", new BigDecimal("200.00")));
+
+        assertThatThrownBy(() -> showService.create(3L, onlyRegular, ADMIN))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Prices must cover exactly the seat categories on screen 3: [PREMIUM, REGULAR]");
+        verify(showRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectsPriceForCategoryNotOnScreen() {
+        when(screenService.lockAndGetCinemaId(3L)).thenReturn(10L);
+        when(movieService.getMovie(2L)).thenReturn(SKY_RIDERS);
+        CreateShowRequest extra = new CreateShowRequest(
+                2L,
+                SHOW_DATE,
+                LocalTime.of(14, 0),
+                Map.of(
+                        "REGULAR", new BigDecimal("200.00"),
+                        "PREMIUM", new BigDecimal("300.00"),
+                        "RECLINER", new BigDecimal("500.00")));
+
+        assertThatThrownBy(() -> showService.create(3L, extra, ADMIN)).isInstanceOf(BadRequestException.class);
     }
 
     @Test
@@ -180,8 +230,7 @@ class ShowServiceTest {
         when(screenService.lockAndGetCinemaId(3L)).thenReturn(10L);
         when(movieService.getMovie(2L)).thenReturn(SKY_RIDERS);
         // The clock is 2026-10-18 01:30 in India.
-        CreateShowRequest past =
-                new CreateShowRequest(2L, LocalDate.of(2026, 10, 18), LocalTime.of(1, 0), new BigDecimal("200.00"));
+        CreateShowRequest past = new CreateShowRequest(2L, LocalDate.of(2026, 10, 18), LocalTime.of(1, 0), PRICES);
 
         assertThatThrownBy(() -> showService.create(3L, past, ADMIN))
                 .isInstanceOf(BadRequestException.class)
@@ -202,7 +251,7 @@ class ShowServiceTest {
     }
 
     private static CreateShowRequest request(LocalTime startTime) {
-        return new CreateShowRequest(2L, SHOW_DATE, startTime, new BigDecimal("300.00"));
+        return new CreateShowRequest(2L, SHOW_DATE, startTime, PRICES);
     }
 
     @Test

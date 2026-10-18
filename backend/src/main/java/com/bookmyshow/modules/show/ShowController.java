@@ -2,6 +2,7 @@ package com.bookmyshow.modules.show;
 
 import com.bookmyshow.common.response.ListResponse;
 import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
+import com.bookmyshow.modules.show.ShowTypes.SeatMapResponse;
 import com.bookmyshow.modules.show.ShowTypes.ShowResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,9 +20,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class ShowController {
 
     private final ShowService showService;
+    private final ShowSeatMapService showSeatMapService;
 
-    public ShowController(ShowService showService) {
+    public ShowController(ShowService showService, ShowSeatMapService showSeatMapService) {
         this.showService = showService;
+        this.showSeatMapService = showSeatMapService;
+    }
+
+    @GetMapping("/api/v1/shows/{showId}/seats")
+    @Operation(summary = "Seat map of a show, with the price and status of every seat")
+    public SeatMapResponse getSeatMap(@PathVariable @Positive long showId) {
+        return showSeatMapService.getSeatMap(showId);
     }
 
     @GetMapping("/api/v1/cinemas/{cinemaId}/shows")

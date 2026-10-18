@@ -102,6 +102,11 @@ public class ScreenService {
                 .getCinemaId();
     }
 
+    /** Seat categories present on a screen, for example REGULAR and PREMIUM. Used to check show prices. */
+    public Set<String> listCategories(long screenId) {
+        return Set.copyOf(seatRepository.findCategoriesByScreenId(screenId));
+    }
+
     /** Used by other modules to check a screen before using its ID. */
     public void ensureExists(long screenId) {
         if (!screenRepository.existsById(screenId)) {

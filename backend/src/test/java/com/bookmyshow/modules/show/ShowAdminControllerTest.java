@@ -28,7 +28,8 @@ import org.springframework.test.web.servlet.MockMvc;
 class ShowAdminControllerTest {
 
     private static final String BODY = """
-            {"movieId": 2, "showDate": "2026-10-20", "startTime": "14:00", "price": 300.00}
+            {"movieId": 2, "showDate": "2026-10-20", "startTime": "14:00",
+             "prices": {"REGULAR": 200.00, "PREMIUM": 300.00}}
             """;
 
     @Autowired
@@ -78,6 +79,15 @@ class ShowAdminControllerTest {
                         .with(TestLogins.as(1L, Roles.ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(BODY.replace("\"movieId\": 2, ", "")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rejectsUnknownPriceCategory() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/screens/3/shows")
+                        .with(TestLogins.as(1L, Roles.ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(BODY.replace("PREMIUM", "GOLD")))
                 .andExpect(status().isBadRequest());
     }
 
