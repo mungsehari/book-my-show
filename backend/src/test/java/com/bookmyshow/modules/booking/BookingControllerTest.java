@@ -63,6 +63,22 @@ class BookingControllerTest {
     @MockitoBean
     private PaymentWebhookService webhookService;
 
+    @MockitoBean
+    private RefundService refundService;
+
+    @Test
+    void ownerCancels() throws Exception {
+        when(refundService.cancel(9L, ASHA)).thenReturn(CONFIRMED_BOOKING);
+
+        mockMvc.perform(post("/api/v1/bookings/9/cancel").with(TestLogins.as(7L, Roles.USER)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void cancelNeedsLogin() throws Exception {
+        mockMvc.perform(post("/api/v1/bookings/9/cancel")).andExpect(status().isUnauthorized());
+    }
+
     @Test
     void checkoutReturnsRazorpayOrder() throws Exception {
         when(bookingService.checkout(LOCK_ID, ASHA))

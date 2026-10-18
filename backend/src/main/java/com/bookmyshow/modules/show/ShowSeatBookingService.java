@@ -7,7 +7,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Sold seats. Used by the booking module to sell seats, and by the seat map to show them as BOOKED. */
+/** Sold seats. Used by the booking module to sell, free, and transfer seats, and by the seat map to show BOOKED. */
 @Service
 @Transactional(readOnly = true)
 public class ShowSeatBookingService {
@@ -29,10 +29,8 @@ public class ShowSeatBookingService {
      */
     @Transactional
     public boolean sellSeats(long showId, List<Long> seatIds, long bookingId) {
-        showRepository
-                .findByIdForUpdate(showId)
-                .orElseThrow(() -> new NotFoundException("Show " + showId + " not found"));
-        if (bookedSeatRepository.existsByShowIdAndSeatIdIn(showId, seatIds)) {
+        lockShow(showId);
+        if (bookedSeatRepository.existsByShowIdAndSeatIdInAndReleasedAtIsNull(showId, seatIds)) {
             return false;
         }
         bookedSeatRepository.saveAll(seatIds.stream()
@@ -41,7 +39,31 @@ public class ShowSeatBookingService {
         return true;
     }
 
+    /** Undoes a sale (cancel). The seats can be sold again. Returns the freed seat IDs. */
+    @Transactional
+    public List<Long> releaseSeats(long showId, long bookingId) {
+        lockShow(showId);
+        List<ShowBookedSeat> sold = bookedSeatRepository.findByBookingIdAndReleasedAtIsNull(bookingId);
+        sold.forEach(seat -> seat.release(clock.instant()));
+        return sold.stream().map(ShowBookedSeat::getSeatId).toList();
+    }
+
+    /** Resale: moves the sold seats of one booking to another. Returns false if the first booking holds no seats. */
+    @Transactional
+    public boolean transferSeats(long showId, long fromBookingId, long toBookingId) {
+        lockShow(showId);
+        List<ShowBookedSeat> sold = bookedSeatRepository.findByBookingIdAndReleasedAtIsNull(fromBookingId);
+        sold.forEach(seat -> seat.transferTo(toBookingId));
+        return !sold.isEmpty();
+    }
+
     public Set<Long> soldSeats(long showId) {
         return Set.copyOf(bookedSeatRepository.findSeatIdsByShowId(showId));
+    }
+
+    private void lockShow(long showId) {
+        showRepository
+                .findByIdForUpdate(showId)
+                .orElseThrow(() -> new NotFoundException("Show " + showId + " not found"));
     }
 }

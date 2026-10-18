@@ -11,6 +11,14 @@ public final class BookingStatus {
     public static final String FAILED = "FAILED";
     /** Paid, but a seat was sold to someone else first. The money must be refunded. */
     public static final String NEEDS_REFUND = "NEEDS_REFUND";
+    /** Not paid in time. A late payment can still confirm it if the seats are free. */
+    public static final String EXPIRED = "EXPIRED";
+    /** Cancelled by the user and refunded. The seats were freed. */
+    public static final String CANCELLED = "CANCELLED";
+    /** A NEEDS_REFUND booking that got its money back. */
+    public static final String REFUNDED = "REFUNDED";
+    /** Sold on to another user at face value. This owner was refunded. */
+    public static final String RESOLD = "RESOLD";
 
     private BookingStatus() {}
 }

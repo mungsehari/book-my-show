@@ -12,6 +12,13 @@ public interface PaymentGateway {
      */
     PaymentOrder createOrder(long amountInPaise, String currency, String receipt);
 
+    /**
+     * Refunds money for a captured payment and returns the refund ID.
+     *
+     * @throws com.bookmyshow.common.error.UpstreamException if the provider fails
+     */
+    String refund(String paymentId, long amountInPaise, String note);
+
     /** True if the signature the frontend got after paying is genuine for this order and payment. */
     boolean isValidPaymentSignature(String orderId, String paymentId, String signature);
 

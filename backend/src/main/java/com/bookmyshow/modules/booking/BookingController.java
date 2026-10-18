@@ -34,9 +34,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final RefundService refundService;
 
-    public BookingController(BookingService bookingService) {
+    public BookingController(BookingService bookingService, RefundService refundService) {
         this.bookingService = bookingService;
+        this.refundService = refundService;
+    }
+
+    @PostMapping("/{bookingId}/cancel")
+    @Operation(summary = "Cancel with a full refund, up to 2 hours before the show")
+    public BookingResponse cancel(@PathVariable @Positive long bookingId, @AuthenticationPrincipal Jwt jwt) {
+        return refundService.cancel(bookingId, CurrentUser.from(jwt));
     }
 
     @PostMapping

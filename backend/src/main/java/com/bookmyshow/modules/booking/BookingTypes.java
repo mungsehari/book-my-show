@@ -86,5 +86,9 @@ public final class BookingTypes {
             String currency,
             Instant checkedInAt) {}
 
+    /** A ticket offered for resale. price is what the owner paid, the only price it can sell for. */
+    public record ResaleListing(
+            Long bookingId, Long showId, List<String> seats, BigDecimal price, String currency, boolean onHold) {}
+
     public record CheckInRequest(@NotBlank @Size(max = 100) String ticketCode) {}
 }

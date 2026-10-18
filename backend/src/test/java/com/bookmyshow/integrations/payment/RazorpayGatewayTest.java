@@ -58,6 +58,9 @@ class RazorpayGatewayTest {
         assertThatThrownBy(() -> gateway.createOrder(45000, "INR", "booking-1"))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("Payments are not set up");
+        assertThatThrownBy(() -> gateway.refund("pay_1", 100, "test"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Payments are not set up");
         assertThat(gateway.isValidPaymentSignature("o", "p", "s")).isFalse();
         assertThat(gateway.isValidWebhookSignature("{}", "s")).isFalse();
     }

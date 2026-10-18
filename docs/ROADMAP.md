@@ -38,12 +38,12 @@ Each step is one small change with its own plan and approval.
 | 1.5 | Users and login (JWT) | Network unlock | Done (email, phone OTP with console SMS, Google) |
 | 1.6 | Seat map and availability per show | 1.3 | Done (category prices; every seat AVAILABLE until locks and bookings) |
 | 1.7 | Seat lock with Redis | Network unlock, Redis compose file | Done (10 min locks, all or none, one lock per user per show) |
-| 1.8 | Booking and test payment with webhook (Razorpay test mode) | Razorpay test keys in `.env` | Done (no SDK; expiry job and refunds still to do) |
+| 1.8 | Booking and test payment with webhook (Razorpay test mode) | Razorpay test keys in `.env` | Done (no SDK; expiry job, cancel, and refunds added in batch 2) |
 | 1.9 | Ticket with signed QR | 1.8 | Done (signed ticket code, one-time check-in; frontend draws the QR) |
 | 1.10 | Booking history | 1.8 | Done (upcoming and past, paged) |
 | 1.11 | Next.js frontend | Network unlock | Planned |
 
-Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and drop `movie_name`. The user approves and runs that migration.
+Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and drop `movie_name`. The user approves and runs that migration. Still open. (Separately, V11 replaced the old `uq_shows_slot` with one show per screen slot, approved by the user.)
 
 ## Phase 2: Group booking
 
@@ -52,7 +52,7 @@ Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and dr
 | Group poll | Friends vote on a movie and a show | Shared poll link, live vote count |
 | Split payment | One person locks seats, each friend pays their share | Longer seat lock, partial payments, refund if the group does not finish |
 | Seats together | Show only shows where the whole group can sit side by side | Search for N adjacent free seats |
-| Waitlist | When a housefull show gets a cancellation, offer the seat to the next person | Queue per show, offer timeout, fair order |
+| Waitlist (Done) | When a housefull show gets a cancellation, offer the seat to the next person | Queue per show, offer timeout, fair order |
 | Virtual waiting room | Queue users fairly when a big release opens for booking | Admission tokens, rate limits, protect the seat lock service |
 | Gift ticket | Book for someone else and send them a link | Transfer the ticket to the receiver's account |
 
@@ -61,7 +61,7 @@ Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and dr
 | Feature | What it does | Technical challenge |
 |---|---|---|
 | Verified reviews (Done) | Only people who booked and watched can review | Link each review to a used ticket |
-| Ticket resale | Resell a ticket at face value only | Ownership transfer, new QR, block price markup |
+| Ticket resale (Done, whole ticket only) | Resell a ticket at face value only | Ownership transfer, new QR, block price markup |
 | Friends activity | "3 friends watched this movie" | Friend graph, privacy settings |
 
 ## Phase 4: Smart pricing

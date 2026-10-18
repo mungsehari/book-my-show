@@ -13,8 +13,10 @@ import com.bookmyshow.modules.booking.BookingTypes.ConfirmPaymentRequest;
 import com.bookmyshow.modules.show.ShowSeatBookingService;
 import com.bookmyshow.modules.show.ShowSeatLockService;
 import com.bookmyshow.modules.show.ShowTypes.ActiveLock;
+import com.bookmyshow.modules.waitlist.WaitlistService;
 import com.bookmyshow.security.CurrentUser;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,14 +43,24 @@ public class BookingService {
     static final String CURRENCY = "INR";
     static final String UPCOMING = "upcoming";
 
-    /** Shown in history. PENDING_PAYMENT is left out, because unpaid checkouts are noise. */
-    private static final List<String> HISTORY_STATUSES =
-            List.of(BookingStatus.CONFIRMED, BookingStatus.FAILED, BookingStatus.NEEDS_REFUND);
+    /** Unpaid checkouts expire after this. A bit longer than the 10 minute seat lock. */
+    static final Duration PAYMENT_TIMEOUT = Duration.ofMinutes(15);
+
+    /** Shown in history. Unpaid (PENDING_PAYMENT, EXPIRED) checkouts are left out, because they are noise. */
+    private static final List<String> HISTORY_STATUSES = List.of(
+            BookingStatus.CONFIRMED,
+            BookingStatus.FAILED,
+            BookingStatus.NEEDS_REFUND,
+            BookingStatus.CANCELLED,
+            BookingStatus.REFUNDED,
+            BookingStatus.RESOLD);
 
     private final BookingRepository bookingRepository;
     private final ShowSeatLockService seatLockService;
     private final ShowSeatBookingService seatBookingService;
     private final PaymentGateway paymentGateway;
+    private final ResaleCompletion resaleCompletion;
+    private final WaitlistService waitlistService;
     private final Clock clock;
 
     public BookingService(
@@ -56,11 +68,15 @@ public class BookingService {
             ShowSeatLockService seatLockService,
             ShowSeatBookingService seatBookingService,
             PaymentGateway paymentGateway,
+            ResaleCompletion resaleCompletion,
+            WaitlistService waitlistService,
             Clock clock) {
         this.bookingRepository = bookingRepository;
         this.seatLockService = seatLockService;
         this.seatBookingService = seatBookingService;
         this.paymentGateway = paymentGateway;
+        this.resaleCompletion = resaleCompletion;
+        this.waitlistService = waitlistService;
         this.clock = clock;
     }
 
@@ -163,16 +179,30 @@ public class BookingService {
         if (!booking.awaitsPayment()) {
             return;
         }
+        if (booking.getResaleOfBookingId() != null) {
+            resaleCompletion.complete(booking, paymentId);
+            return;
+        }
         boolean sold = seatBookingService.sellSeats(booking.getShowId(), booking.getSeatIds(), booking.getId());
         if (sold) {
             booking.confirm(paymentId, clock.instant());
             seatLockService.releaseAfterSale(booking.getLockId());
+            waitlistService.markBooked(booking.getLockId());
         } else {
             booking.markNeedsRefund(paymentId);
         }
     }
 
-    private static long toPaise(Booking booking) {
+    /** Run by a job: unpaid checkouts older than {@link #PAYMENT_TIMEOUT} become EXPIRED. Returns how many. */
+    @Transactional
+    public int expireStale() {
+        List<Booking> stale = bookingRepository.findTop100ByStatusAndCreatedAtBefore(
+                BookingStatus.PENDING_PAYMENT, clock.instant().minus(PAYMENT_TIMEOUT));
+        stale.forEach(Booking::markExpired);
+        return stale.size();
+    }
+
+    static long toPaise(Booking booking) {
         return booking.getAmount().movePointRight(2).longValueExact();
     }
 

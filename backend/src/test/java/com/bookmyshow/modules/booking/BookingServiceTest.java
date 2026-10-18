@@ -23,6 +23,7 @@ import com.bookmyshow.modules.booking.BookingTypes.ConfirmPaymentRequest;
 import com.bookmyshow.modules.show.ShowSeatBookingService;
 import com.bookmyshow.modules.show.ShowSeatLockService;
 import com.bookmyshow.modules.show.ShowTypes.ActiveLock;
+import com.bookmyshow.modules.waitlist.WaitlistService;
 import com.bookmyshow.security.CurrentUser;
 import com.bookmyshow.security.Roles;
 import java.math.BigDecimal;
@@ -53,6 +54,8 @@ class BookingServiceTest {
     private ShowSeatLockService seatLockService;
     private ShowSeatBookingService seatBookingService;
     private PaymentGateway paymentGateway;
+    private ResaleCompletion resaleCompletion;
+    private WaitlistService waitlistService;
     private BookingService bookingService;
 
     @BeforeEach
@@ -62,12 +65,62 @@ class BookingServiceTest {
         seatBookingService = mock(ShowSeatBookingService.class);
         paymentGateway = mock(PaymentGateway.class);
         when(paymentGateway.publicKey()).thenReturn("rzp_test_abc");
+        resaleCompletion = mock(ResaleCompletion.class);
+        waitlistService = mock(WaitlistService.class);
         bookingService = new BookingService(
                 bookingRepository,
                 seatLockService,
                 seatBookingService,
                 paymentGateway,
+                resaleCompletion,
+                waitlistService,
                 Clock.fixed(Instant.parse("2026-10-18T05:00:00Z"), ZoneOffset.UTC));
+    }
+
+    @Test
+    void confirmTellsWaitlistTheOfferWasBooked() {
+        Booking booking = pending();
+        when(bookingRepository.findByIdForUpdate(9L)).thenReturn(Optional.of(booking));
+        when(paymentGateway.isValidPaymentSignature("order_1", "pay_1", "sig")).thenReturn(true);
+        when(seatBookingService.sellSeats(50L, List.of(1L), 9L)).thenReturn(true);
+
+        bookingService.confirm(9L, PAID, ASHA);
+
+        verify(waitlistService).markBooked(LOCK_ID);
+    }
+
+    @Test
+    void resalePaymentGoesToResaleCompletion() {
+        Booking seller = pending();
+        seller.confirm("pay_0", Instant.now());
+        Booking buyer = Booking.resaleOf(seller, 8L, "hold-1", Instant.now());
+
+        bookingService.applyPayment(buyer, "pay_9");
+
+        verify(resaleCompletion).complete(buyer, "pay_9");
+        verify(seatBookingService, never()).sellSeats(anyLong(), any(), anyLong());
+    }
+
+    @Test
+    void lateUnpaidCheckoutsExpire() {
+        Booking stale = pending();
+        when(bookingRepository.findTop100ByStatusAndCreatedAtBefore(
+                        BookingStatus.PENDING_PAYMENT, Instant.parse("2026-10-18T04:45:00Z")))
+                .thenReturn(List.of(stale));
+
+        assertThat(bookingService.expireStale()).isEqualTo(1);
+        assertThat(stale.getStatus()).isEqualTo(BookingStatus.EXPIRED);
+    }
+
+    @Test
+    void latePaymentOnExpiredBookingStillConfirms() {
+        Booking expired = pending();
+        expired.markExpired();
+        when(seatBookingService.sellSeats(50L, List.of(1L), 9L)).thenReturn(true);
+
+        bookingService.applyPayment(expired, "pay_1");
+
+        assertThat(expired.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
     }
 
     @Test

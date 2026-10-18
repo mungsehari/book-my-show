@@ -65,6 +65,21 @@ Bookings and payment (Razorpay test mode):
 
 Reviews: `POST /api/v1/movies/{movieId}/reviews` with `{"rating": 1-5, "text": "..."}`. Only users with a paid booking whose show has started (or who were checked in) can post, once per movie.
 
+Cancel, refund, resale, waitlist:
+
+| API | Does |
+|---|---|
+| `POST /api/v1/bookings/{bookingId}/cancel` | Cancel with a full refund, up to 2 hours before the show. Freed seats go to the waitlist first. |
+| `POST /api/v1/admin/bookings/{bookingId}/refund` | ADMIN. Refund a `NEEDS_REFUND` booking. |
+| `GET /api/v1/shows/{showId}/resale` | Resale tickets for a show, at face value |
+| `POST /api/v1/bookings/{bookingId}/resale` | Offer your whole ticket for resale (and `/resale/cancel` to stop) |
+| `POST /api/v1/resale/{bookingId}/checkout` | Buy a resale ticket at the price the owner paid. Confirm with `/bookings/{id}/confirm`. The owner is refunded in full. |
+| `POST /api/v1/shows/{showId}/waitlist` | Join the waitlist of a full show, `{"seats": 2}` |
+| `GET /api/v1/waitlist/me?showId=` | Your place in the queue, or the `lockId` of seats held for you |
+| `POST /api/v1/waitlist/{entryId}/leave` | Leave the waitlist |
+
+Jobs run every minute: unpaid checkouts expire after 15 minutes, and waitlist offers nobody took in 10 minutes go to the next person. Notifications (waitlist offers, refunds) are written to the backend log for now.
+
 Sold seats show as `BOOKED`. A seat can be sold only once (a unique key in the database). If a payment arrives after the seats were sold to someone else, the booking becomes `NEEDS_REFUND`.
 
 Set the Razorpay test keys in `.env`. For the webhook on your laptop, use a tunnel (for example `ngrok http 8080`) and add its URL in the Razorpay dashboard with the events `payment.captured` and `payment.failed`.

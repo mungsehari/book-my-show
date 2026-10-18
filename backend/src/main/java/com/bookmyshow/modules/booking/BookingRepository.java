@@ -1,6 +1,7 @@
 package com.bookmyshow.modules.booking;
 
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -14,6 +15,16 @@ import org.springframework.data.jpa.repository.Query;
 interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByLockId(String lockId);
+
+    /** Unpaid checkouts older than the cut-off, for the expiry job. */
+    List<Booking> findTop100ByStatusAndCreatedAtBefore(String status, Instant before);
+
+    /** Resale tickets on offer for a show. */
+    List<Booking> findByShowIdAndStatusAndResaleListedAtIsNotNullOrderByResaleListedAtAsc(Long showId, String status);
+
+    /** A buyer's unpaid resale checkout for a seller's ticket, newer than the cut-off. */
+    Optional<Booking> findFirstByResaleOfBookingIdAndStatusAndCreatedAtAfter(
+            Long sellerBookingId, String status, Instant after);
 
     List<Booking> findByUserIdAndMovieIdAndStatusAndShowDateLessThanEqual(
             Long userId, Long movieId, String status, LocalDate onOrBefore);

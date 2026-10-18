@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -143,6 +144,16 @@ public class ShowSeatLockService {
                 map.startTime(),
                 List.copyOf(seatLabels),
                 show.getMovieId());
+    }
+
+    /**
+     * Used by the waitlist: holds seats for a user without any user request, for the given time. Returns the lock ID,
+     * or empty if a seat is taken or the user already holds seats for this show.
+     */
+    public Optional<String> lockForUser(long userId, long showId, List<Long> seatIds, Duration ttl) {
+        String lockId = UUID.randomUUID().toString();
+        LockResult result = seatLockStore.lock(lockId, userId, showId, seatIds, ttl);
+        return result == LockResult.LOCKED ? Optional.of(lockId) : Optional.empty();
     }
 
     /** Used by the booking module once seats are sold. Does nothing if the lock already expired. */

@@ -45,8 +45,9 @@ VALUES ('The Last Monsoon', 'A fishing family waits out one last storm season.',
        ('Code Red Mumbai', 'A cyber cop has one night to stop a city-wide blackout.', 'Hindi', 'Thriller', 135, 'A', DATE '2026-10-09')
 ON CONFLICT (title, language) DO NOTHING;
 
-INSERT INTO shows (cinema_id, movie_name, show_date, start_time, price)
-SELECT ci.id, v.movie, CURRENT_DATE + v.day_offset, v.start_time::TIME, v.price
+-- Sample shows go on Screen 1 of their cinema. The sample times on one cinema do not overlap.
+INSERT INTO shows (cinema_id, screen_id, movie_name, show_date, start_time, price)
+SELECT ci.id, sc.id, v.movie, CURRENT_DATE + v.day_offset, v.start_time::TIME, v.price
 FROM (VALUES ('City Cineplex Andheri', 'The Last Monsoon', 0, '10:00', 250.00),
              ('City Cineplex Andheri', 'The Last Monsoon', 0, '18:30', 320.00),
              ('City Cineplex Andheri', 'Sky Riders', 1, '14:00', 280.00),
@@ -56,7 +57,8 @@ FROM (VALUES ('City Cineplex Andheri', 'The Last Monsoon', 0, '10:00', 250.00),
              ('Capital Cinema Saket', 'Code Red Mumbai', 1, '16:30', 270.00))
          AS v (cinema, movie, day_offset, start_time, price)
 JOIN cinemas ci ON ci.name = v.cinema
-ON CONFLICT (cinema_id, show_date, start_time, movie_name) DO NOTHING;
+JOIN screens sc ON sc.cinema_id = ci.id AND sc.name = 'Screen 1'
+ON CONFLICT (screen_id, show_date, start_time) DO NOTHING;
 
 -- Link sample shows to their movie. Same rule as V3: only when the title matches exactly one movie.
 UPDATE shows s
@@ -64,7 +66,7 @@ SET movie_id = (SELECT m.id FROM movies m WHERE m.title = s.movie_name)
 WHERE s.movie_id IS NULL
   AND (SELECT COUNT(*) FROM movies m WHERE m.title = s.movie_name) = 1;
 
--- Put sample shows on Screen 1 of their cinema. The sample times on one cinema do not overlap.
+-- Older sample shows made before screens existed: put them on Screen 1 too.
 UPDATE shows s
 SET screen_id = sc.id
 FROM screens sc

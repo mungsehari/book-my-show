@@ -61,6 +61,28 @@ public class RazorpayGateway implements PaymentGateway {
         }
     }
 
+    @Override
+    public String refund(String paymentId, long amountInPaise, String note) {
+        if (restClient == null) {
+            throw new BadRequestException("Payments are not set up");
+        }
+        try {
+            RazorpayRefund refund = restClient
+                    .post()
+                    .uri("/payments/{paymentId}/refund", paymentId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("amount", amountInPaise, "notes", Map.of("reason", note)))
+                    .retrieve()
+                    .body(RazorpayRefund.class);
+            if (refund == null || refund.id() == null) {
+                throw new UpstreamException("Razorpay returned no refund", null);
+            }
+            return refund.id();
+        } catch (RestClientException ex) {
+            throw new UpstreamException("Could not refund the payment. Try again.", ex);
+        }
+    }
+
     /** Razorpay signs "orderId|paymentId" with the key secret (HMAC SHA-256, hex). */
     @Override
     public boolean isValidPaymentSignature(String orderId, String paymentId, String signature) {
@@ -98,4 +120,6 @@ public class RazorpayGateway implements PaymentGateway {
     }
 
     private record RazorpayOrder(String id, long amount, String currency) {}
+
+    private record RazorpayRefund(String id) {}
 }

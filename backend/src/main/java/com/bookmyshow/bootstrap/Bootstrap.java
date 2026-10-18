@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Import;
     LoggingConfig.class,
     SecurityHeadersConfig.class,
     JwtConfig.class,
+    SchedulingConfig.class,
     SecurityConfig.class,
     TelemetryConfig.class,
     OpenApiConfig.class

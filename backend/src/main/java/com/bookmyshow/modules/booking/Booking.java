@@ -89,7 +89,49 @@ public class Booking {
     @Column(name = "checked_in_by")
     private Long checkedInBy;
 
+    @Column(name = "razorpay_refund_id", length = 50)
+    private String razorpayRefundId;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "refunded_at")
+    private Instant refundedAt;
+
+    /** Set while the owner offers the ticket for resale at face value. */
+    @Column(name = "resale_listed_at")
+    private Instant resaleListedAt;
+
+    /** For a resale purchase: the seller's booking. */
+    @Column(name = "resale_of_booking_id")
+    private Long resaleOfBookingId;
+
     protected Booking() {}
+
+    /**
+     * A buyer's booking for a resale ticket, waiting for payment. Same show, seats, and price as the seller's booking,
+     * so the price can never go above face value.
+     */
+    static Booking resaleOf(Booking seller, long buyerId, String holdId, Instant createdAt) {
+        Booking booking = new Booking();
+        booking.userId = buyerId;
+        booking.showId = seller.showId;
+        booking.seatIds = seller.seatIds;
+        booking.amount = seller.amount;
+        booking.currency = seller.currency;
+        booking.lockId = holdId;
+        booking.createdAt = createdAt;
+        booking.status = BookingStatus.PENDING_PAYMENT;
+        booking.showDate = seller.showDate;
+        booking.startTime = seller.startTime;
+        booking.movieName = seller.movieName;
+        booking.movieId = seller.movieId;
+        booking.cinemaId = seller.cinemaId;
+        booking.screenName = seller.screenName;
+        booking.seatLabels = seller.seatLabels;
+        booking.resaleOfBookingId = seller.id;
+        return booking;
+    }
 
     /** A new booking for the seats in a lock, waiting for payment. */
     public Booking(ActiveLock lock, String currency, Instant createdAt) {
@@ -120,9 +162,64 @@ public class Booking {
         this.razorpayOrderId = razorpayOrderId;
     }
 
-    /** Payment can still be applied: waiting, or failed earlier and paid on a retry. */
+    /** Payment can still be applied: waiting, failed earlier and paid on a retry, or expired and paid late. */
     boolean awaitsPayment() {
-        return BookingStatus.PENDING_PAYMENT.equals(status) || BookingStatus.FAILED.equals(status);
+        return BookingStatus.PENDING_PAYMENT.equals(status)
+                || BookingStatus.FAILED.equals(status)
+                || BookingStatus.EXPIRED.equals(status);
+    }
+
+    /** Not paid in time. A late payment can still confirm it if the seats are free. */
+    void markExpired() {
+        this.status = BookingStatus.EXPIRED;
+    }
+
+    /** The user cancelled and got the money back. */
+    void cancel(String refundId, Instant now) {
+        this.status = BookingStatus.CANCELLED;
+        this.razorpayRefundId = refundId;
+        this.cancelledAt = now;
+        this.refundedAt = now;
+        this.resaleListedAt = null;
+    }
+
+    /** A NEEDS_REFUND booking got its money back. */
+    void markRefunded(String refundId, Instant now) {
+        this.status = BookingStatus.REFUNDED;
+        this.razorpayRefundId = refundId;
+        this.refundedAt = now;
+    }
+
+    void listForResale(Instant now) {
+        this.resaleListedAt = now;
+    }
+
+    void unlistResale() {
+        this.resaleListedAt = null;
+    }
+
+    /** The ticket was bought by someone else at face value, and this owner got the money back. */
+    void markResold(String refundId, Instant now) {
+        this.status = BookingStatus.RESOLD;
+        this.razorpayRefundId = refundId;
+        this.refundedAt = now;
+        this.resaleListedAt = null;
+    }
+
+    boolean isListedForResale() {
+        return resaleListedAt != null;
+    }
+
+    public String getRazorpayPaymentId() {
+        return razorpayPaymentId;
+    }
+
+    public Long getResaleOfBookingId() {
+        return resaleOfBookingId;
+    }
+
+    public Instant getResaleListedAt() {
+        return resaleListedAt;
     }
 
     void confirm(String paymentId, Instant now) {
