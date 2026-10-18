@@ -60,6 +60,16 @@ public class MovieService {
         return movieRepository.findById(movieId).map(MovieResponse::from).orElseThrow(() -> notFound(movieId));
     }
 
+    /** Used by mood search: the genres in the catalog, so filters can only name real ones. */
+    public List<String> catalogGenres() {
+        return movieRepository.findDistinctGenres();
+    }
+
+    /** Used by mood search: the languages in the catalog. */
+    public List<String> catalogLanguages() {
+        return movieRepository.findDistinctLanguages();
+    }
+
     /** Used by other modules to check a movie before using its ID. */
     public void ensureExists(long movieId) {
         if (!movieRepository.existsById(movieId)) {

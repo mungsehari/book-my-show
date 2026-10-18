@@ -112,6 +112,21 @@ public class ShowService {
                 .toList();
     }
 
+    /** Used by the weekend planner. Shows in a city on a date that have a seat map and have not started, by time. */
+    public List<ShowResponse> listInCityOnDate(long cityId, LocalDate date) {
+        List<Long> cinemaIds = cinemaService.listIdsByCity(cityId);
+        if (cinemaIds.isEmpty()) {
+            return List.of();
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        return showRepository.findByCinemaIdInAndShowDateOrderByStartTimeAsc(cinemaIds, date).stream()
+                .filter(show -> show.getScreenId() != null)
+                .filter(show -> LocalDateTime.of(show.getShowDate(), show.getStartTime())
+                        .isAfter(now))
+                .map(ShowResponse::from)
+                .toList();
+    }
+
     /** Used by other modules (group polls). */
     public ShowResponse getShow(long showId) {
         return showRepository

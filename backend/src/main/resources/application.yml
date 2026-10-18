@@ -55,6 +55,10 @@ app:
     resend-after: 60s
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
+  # Mood search. A blank key turns AI off; keyword search still works.
+  claude:
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${CLAUDE_MODEL:claude-opus-5-5}
   # Test keys only (rzp_test_...). Empty keys turn payments off.
   razorpay:
     key-id: ${RAZORPAY_KEY_ID:}

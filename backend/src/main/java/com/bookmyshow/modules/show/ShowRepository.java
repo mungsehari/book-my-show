@@ -15,6 +15,8 @@ interface ShowRepository extends JpaRepository<Show, Long> {
 
     List<Show> findAllByScreenIdAndShowDate(Long screenId, LocalDate showDate);
 
+    List<Show> findByCinemaIdInAndShowDateOrderByStartTimeAsc(Collection<Long> cinemaIds, LocalDate showDate);
+
     List<Show> findByCinemaIdInAndMovieIdAndShowDateBetweenOrderByShowDateAscStartTimeAsc(
             Collection<Long> cinemaIds, Long movieId, LocalDate from, LocalDate to);
 

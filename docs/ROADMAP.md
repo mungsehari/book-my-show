@@ -88,8 +88,8 @@ Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and dr
 
 | Feature | What it does | Technical challenge |
 |---|---|---|
-| Mood search | "Something light and funny, under 2 hours" returns movies | LLM call through `integrations/`, search on genre and length |
-| Weekend planner | Plan movie, food, and parking together | Third-party APIs, combined itinerary |
+| Mood search (Done: Claude reads filters, keyword fallback, cache, rate limit) | "Something light and funny, under 2 hours" returns movies | LLM call through `integrations/`, search on genre and length |
+| Weekend planner (Done, with theatre-entered food and parking) | Plan movie, food, and parking together | Third-party APIs, combined itinerary |
 
 ## Tech added per phase
 

@@ -8,7 +8,7 @@ Edit rules here only. Tool-specific files (`CLAUDE.md`, `GEMINI.md`, `.cursor/ru
 
 Book My Show: a movie and event ticket booking app.
 
-Status: browse APIs (cities, cinemas, screens, shows, movies), login (email, phone OTP, Google), admin APIs to add movies, screens, and shows, seat locks (Redis), booking with Razorpay test payments, tickets with one-time check-in, booking history, cancel and refund, face-value resale, waitlist, crowd meter, show filters, verified reviews, last-minute deals, price alerts, seat view photos, friends and friends activity, gift tickets, and group polls.
+Status: browse APIs (cities, cinemas, screens, shows, movies), login (email, phone OTP, Google), admin APIs to add movies, screens, and shows, seat locks (Redis), booking with Razorpay test payments, tickets with one-time check-in, booking history, cancel and refund, face-value resale, waitlist, crowd meter, show filters, verified reviews, last-minute deals, price alerts, seat view photos, friends and friends activity, gift tickets, group polls, AI mood search, and the weekend planner.
 
 Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -36,6 +36,7 @@ Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 | Build | Maven (wrapper in `backend/`) |
 | Database | PostgreSQL, Spring Data JPA, Flyway migrations |
 | Auth | Spring Security, JWT (HS256) via OAuth2 resource server, BCrypt |
+| AI | Anthropic Java SDK, Claude Opus 5.5 by default (`CLAUDE_MODEL`), keyword fallback |
 | API docs | springdoc OpenAPI (Swagger UI) |
 | Tests | JUnit 5, MockMvc |
 | Cache and locks | Redis (seat locks, with Lua scripts) |
@@ -50,9 +51,9 @@ backend/src/main/java/com/bookmyshow/
 ├── BookMyShowApplication.java   # starts the app, imports Bootstrap only
 ├── bootstrap/                   # startup setup, one concern per file
 ├── security/                    # JWT issuing, roles, current user
-├── integrations/                # third-party services (sms, google, payment, notify)
+├── integrations/                # third-party services (sms, google, payment, notify, ai)
 ├── common/                      # error, response, lock (job lock), util
-└── modules/                     # business features (city, cinema, show, movie, screen, user, booking, review, waitlist, alert, friend, poll)
+└── modules/                     # business features (city, cinema, show, movie, screen, user, booking, review, waitlist, alert, friend, poll, discover)
 ```
 
 Structure rules:

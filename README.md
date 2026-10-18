@@ -99,6 +99,16 @@ Social (login needed):
 | `GET /api/v1/polls/mine`, `GET /api/v1/polls/{id}` | Your polls, with vote counts |
 | `POST /api/v1/polls/{id}/vote`, `POST /api/v1/polls/{id}/close` | Vote (changeable). The creator closes: most votes wins, the earlier show wins a tie. |
 
+AI and planning:
+
+| API | Does |
+|---|---|
+| `GET /api/v1/movies/search?q=kuch halka funny, 2 ghante se kam&cityId=1` | Mood search (public). Claude reads the request into filters; the movies always come from our catalog. Falls back to keyword rules without a key, on errors, or past 20 AI calls a minute per client. Answers are cached for a day. `source` says which was used. |
+| `POST /api/v1/planner` | Weekend planner (login needed): `{"cityId", "date", "mood", "people", "budgetPerPerson", "time": "MORNING|AFTERNOON|EVENING"}`. Up to 3 bookable plans: show, group price, nearest food and parking. |
+| `GET /api/v1/cinemas/{cinemaId}/places` | Food and parking near a cinema. Admins add them with `POST /api/v1/admin/cinemas/{cinemaId}/places`. |
+
+Set `ANTHROPIC_API_KEY` in `.env` to turn on Claude (`CLAUDE_MODEL` defaults to `claude-opus-5-5`).
+
 Jobs run every minute: unpaid checkouts expire after 15 minutes, and waitlist offers nobody took in 10 minutes go to the next person. Notifications (waitlist offers, refunds) are written to the backend log for now.
 
 Sold seats show as `BOOKED`. A seat can be sold only once (a unique key in the database). If a payment arrives after the seats were sold to someone else, the booking becomes `NEEDS_REFUND`.
