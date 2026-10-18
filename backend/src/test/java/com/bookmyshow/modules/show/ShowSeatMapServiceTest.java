@@ -32,6 +32,7 @@ class ShowSeatMapServiceTest {
     private ShowPriceRepository showPriceRepository;
     private ScreenService screenService;
     private SeatLockStore seatLockStore;
+    private ShowSeatBookingService seatBookingService;
     private ShowSeatMapService seatMapService;
 
     @BeforeEach
@@ -40,7 +41,9 @@ class ShowSeatMapServiceTest {
         showPriceRepository = mock(ShowPriceRepository.class);
         screenService = mock(ScreenService.class);
         seatLockStore = mock(SeatLockStore.class);
-        seatMapService = new ShowSeatMapService(showRepository, showPriceRepository, screenService, seatLockStore);
+        seatBookingService = mock(ShowSeatBookingService.class);
+        seatMapService = new ShowSeatMapService(
+                showRepository, showPriceRepository, screenService, seatLockStore, seatBookingService);
     }
 
     @Test
@@ -72,6 +75,28 @@ class ShowSeatMapServiceTest {
         assertThat(recliner.price()).isEqualByComparingTo("450.00");
         assertThat(recliner.status()).isEqualTo(SeatStatus.AVAILABLE);
         assertThat(map.rows().get(0).seats()).hasSize(2);
+    }
+
+    @Test
+    void soldSeatIsBookedEvenIfAlsoLocked() {
+        when(showRepository.findById(50L)).thenReturn(Optional.of(show(3L)));
+        when(screenService.getLayout(3L))
+                .thenReturn(new LayoutResponse(
+                        3L,
+                        10L,
+                        "Screen 1",
+                        2,
+                        List.of(new RowResponse(
+                                "A",
+                                List.of(new SeatResponse(1L, 1, "REGULAR"), new SeatResponse(2L, 2, "REGULAR"))))));
+        when(showPriceRepository.findAllByShowId(50L))
+                .thenReturn(List.of(new ShowPrice(50L, "REGULAR", new BigDecimal("200.00"))));
+        when(seatBookingService.soldSeats(50L)).thenReturn(Set.of(1L));
+        when(seatLockStore.lockedSeats(50L, List.of(1L, 2L))).thenReturn(Set.of(1L));
+
+        List<SeatMapSeat> seats = seatMapService.getSeatMap(50L).rows().get(0).seats();
+
+        assertThat(seats).extracting(SeatMapSeat::status).containsExactly(SeatStatus.BOOKED, SeatStatus.AVAILABLE);
     }
 
     @Test

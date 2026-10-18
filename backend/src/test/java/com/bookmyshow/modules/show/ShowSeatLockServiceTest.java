@@ -19,6 +19,7 @@ import com.bookmyshow.common.error.ForbiddenException;
 import com.bookmyshow.common.error.NotFoundException;
 import com.bookmyshow.modules.show.SeatLockStore.HeldLock;
 import com.bookmyshow.modules.show.SeatLockStore.LockResult;
+import com.bookmyshow.modules.show.ShowTypes.ActiveLock;
 import com.bookmyshow.modules.show.ShowTypes.SeatLockResponse;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapResponse;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapRow;
@@ -152,7 +153,47 @@ class ShowSeatLockServiceTest {
         assertThatThrownBy(() -> lockService.release("lock-1", ASHA)).isInstanceOf(NotFoundException.class);
     }
 
-    /** Seats: 1 regular 200, 2 regular locked, 3 recliner 450, 4 premium without price. Show is today. */
+    @Test
+    void rejectsBookedSeat() {
+        assertThatThrownBy(() -> lockService.lock(50L, List.of(5L), ASHA))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("Seat 5 is already booked");
+    }
+
+    @Test
+    void activeLockCarriesCurrentPrice() {
+        when(seatLockStore.find("lock-1")).thenReturn(Optional.of(new HeldLock("lock-1", 7L, 50L, List.of(1L, 3L))));
+
+        ActiveLock lock = lockService.getActiveLock("lock-1", ASHA);
+
+        assertThat(lock.showId()).isEqualTo(50L);
+        assertThat(lock.totalPrice()).isEqualByComparingTo("650.00");
+    }
+
+    @Test
+    void activeLockFailsIfSeatWasSold() {
+        when(seatLockStore.find("lock-1")).thenReturn(Optional.of(new HeldLock("lock-1", 7L, 50L, List.of(5L))));
+
+        assertThatThrownBy(() -> lockService.getActiveLock("lock-1", ASHA)).isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void activeLockOfOtherUserIsForbidden() {
+        when(seatLockStore.find("lock-1")).thenReturn(Optional.of(new HeldLock("lock-1", 8L, 50L, List.of(1L))));
+
+        assertThatThrownBy(() -> lockService.getActiveLock("lock-1", ASHA)).isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void releaseAfterSaleIgnoresExpiredLock() {
+        when(seatLockStore.find("lock-1")).thenReturn(Optional.empty());
+
+        lockService.releaseAfterSale("lock-1");
+
+        verify(seatLockStore, never()).release(any());
+    }
+
+    /** Seats: 1 regular 200, 2 regular locked, 3 recliner 450, 4 premium without price, 5 sold. Show is today. */
     private static SeatMapResponse map(LocalTime startTime) {
         return new SeatMapResponse(
                 50L,
@@ -176,6 +217,8 @@ class ShowSeatLockServiceTest {
                                 List.of(
                                         new SeatMapSeat(
                                                 3L, 1, "RECLINER", new BigDecimal("450.00"), SeatStatus.AVAILABLE),
-                                        new SeatMapSeat(4L, 2, "PREMIUM", null, SeatStatus.UNAVAILABLE)))));
+                                        new SeatMapSeat(4L, 2, "PREMIUM", null, SeatStatus.UNAVAILABLE),
+                                        new SeatMapSeat(
+                                                5L, 3, "RECLINER", new BigDecimal("450.00"), SeatStatus.BOOKED)))));
     }
 }

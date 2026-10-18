@@ -59,6 +59,12 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, "Request conflicts with existing data", request);
     }
 
+    @ExceptionHandler(UpstreamException.class)
+    ResponseEntity<ApiError> handleUpstream(UpstreamException ex, HttpServletRequest request) {
+        log.warn("Upstream failure on {} {}", request.getMethod(), request.getRequestURI(), ex);
+        return build(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
+    }
+
     @ExceptionHandler(TooManyRequestsException.class)
     ResponseEntity<ApiError> handleTooManyRequests(TooManyRequestsException ex, HttpServletRequest request) {
         return build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);

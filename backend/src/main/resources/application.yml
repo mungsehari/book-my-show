@@ -55,3 +55,8 @@ app:
     resend-after: 60s
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
+  # Test keys only (rzp_test_...). Empty keys turn payments off.
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID:}
+    key-secret: ${RAZORPAY_KEY_SECRET:}
+    webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}

@@ -1,0 +1,58 @@
+package com.bookmyshow.modules.booking;
+
+import com.bookmyshow.modules.booking.BookingTypes.BookingResponse;
+import com.bookmyshow.modules.booking.BookingTypes.CheckoutResponse;
+import com.bookmyshow.modules.booking.BookingTypes.ConfirmPaymentRequest;
+import com.bookmyshow.modules.booking.BookingTypes.CreateBookingRequest;
+import com.bookmyshow.security.CurrentUser;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/bookings")
+@Tag(name = "Bookings")
+@SecurityRequirement(name = "bearer")
+public class BookingController {
+
+    private final BookingService bookingService;
+
+    public BookingController(BookingService bookingService) {
+        this.bookingService = bookingService;
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Start payment for locked seats. Returns the Razorpay order for checkout.")
+    public CheckoutResponse checkout(
+            @Valid @RequestBody CreateBookingRequest request, @AuthenticationPrincipal Jwt jwt) {
+        return bookingService.checkout(request.lockId(), CurrentUser.from(jwt));
+    }
+
+    @PostMapping("/{bookingId}/confirm")
+    @Operation(summary = "Confirm with the values Razorpay checkout returned after payment")
+    public BookingResponse confirm(
+            @PathVariable @Positive long bookingId,
+            @Valid @RequestBody ConfirmPaymentRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        return bookingService.confirm(bookingId, request, CurrentUser.from(jwt));
+    }
+
+    @GetMapping("/{bookingId}")
+    @Operation(summary = "One of your bookings")
+    public BookingResponse get(@PathVariable @Positive long bookingId, @AuthenticationPrincipal Jwt jwt) {
+        return bookingService.get(bookingId, CurrentUser.from(jwt));
+    }
+}

@@ -1,5 +1,6 @@
 package com.bookmyshow.bootstrap;
 
+import com.bookmyshow.integrations.payment.RazorpayProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -12,7 +13,7 @@ import org.springframework.context.annotation.Import;
  * here.
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(AppProperties.class)
+@EnableConfigurationProperties({AppProperties.class, RazorpayProperties.class})
 @Import({
     ClockConfig.class,
     CorsConfig.class,

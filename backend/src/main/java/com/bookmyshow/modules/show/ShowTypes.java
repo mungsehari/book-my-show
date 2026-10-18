@@ -79,10 +79,15 @@ public final class ShowTypes {
     public record SeatLockResponse(
             String lockId, Long showId, List<Long> seatIds, BigDecimal totalPrice, Instant expiresAt) {}
 
-    /** Seat states on a show's seat map. BOOKED comes with bookings. */
+    /** A lock that is still held, with what it costs now. Used by the booking module. */
+    public record ActiveLock(String lockId, long userId, long showId, List<Long> seatIds, BigDecimal totalPrice) {}
+
+    /** Seat states on a show's seat map. */
     public static final class SeatStatus {
 
         public static final String AVAILABLE = "AVAILABLE";
+        /** Sold. Never frees itself. */
+        public static final String BOOKED = "BOOKED";
         /** Held by someone during checkout. Frees itself when the lock expires. */
         public static final String LOCKED = "LOCKED";
         /** The show has no price for this seat's category, so it cannot be sold. */

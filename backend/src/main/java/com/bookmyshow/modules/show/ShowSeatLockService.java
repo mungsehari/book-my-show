@@ -6,6 +6,7 @@ import com.bookmyshow.common.error.ForbiddenException;
 import com.bookmyshow.common.error.NotFoundException;
 import com.bookmyshow.modules.show.SeatLockStore.HeldLock;
 import com.bookmyshow.modules.show.SeatLockStore.LockResult;
+import com.bookmyshow.modules.show.ShowTypes.ActiveLock;
 import com.bookmyshow.modules.show.ShowTypes.SeatLockResponse;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapResponse;
 import com.bookmyshow.modules.show.ShowTypes.SeatMapSeat;
@@ -66,6 +67,9 @@ public class ShowSeatLockService {
             if (SeatStatus.UNAVAILABLE.equals(seat.status())) {
                 throw new BadRequestException("Seat " + seatId + " is not for sale");
             }
+            if (SeatStatus.BOOKED.equals(seat.status())) {
+                throw new ConflictException("Seat " + seatId + " is already booked");
+            }
             if (SeatStatus.LOCKED.equals(seat.status())) {
                 throw new ConflictException("Seat " + seatId + " is already taken");
             }
@@ -86,12 +90,41 @@ public class ShowSeatLockService {
 
     /** Frees the seats early. Only the user who holds the lock can release it. */
     public void release(String lockId, CurrentUser user) {
+        seatLockStore.release(ownedLock(lockId, user));
+    }
+
+    /**
+     * Used by the booking module at checkout. Returns the user's lock with the price of its seats now. 404 if the lock
+     * expired, 403 if it is someone else's, 409 if a seat was sold in the meantime.
+     */
+    public ActiveLock getActiveLock(String lockId, CurrentUser user) {
+        HeldLock lock = ownedLock(lockId, user);
+        Map<Long, SeatMapSeat> seats = seatMapService.getSeatMap(lock.showId()).rows().stream()
+                .flatMap(row -> row.seats().stream())
+                .collect(Collectors.toMap(SeatMapSeat::id, Function.identity()));
+        BigDecimal total = BigDecimal.ZERO;
+        for (Long seatId : lock.seatIds()) {
+            SeatMapSeat seat = seats.get(seatId);
+            if (seat == null || seat.price() == null || SeatStatus.BOOKED.equals(seat.status())) {
+                throw new ConflictException("Seat " + seatId + " can no longer be sold. Pick again.");
+            }
+            total = total.add(seat.price());
+        }
+        return new ActiveLock(lock.lockId(), lock.userId(), lock.showId(), lock.seatIds(), total);
+    }
+
+    /** Used by the booking module once seats are sold. Does nothing if the lock already expired. */
+    public void releaseAfterSale(String lockId) {
+        seatLockStore.find(lockId).ifPresent(seatLockStore::release);
+    }
+
+    private HeldLock ownedLock(String lockId, CurrentUser user) {
         HeldLock lock = seatLockStore
                 .find(lockId)
                 .orElseThrow(() -> new NotFoundException("Lock " + lockId + " not found or already expired"));
         if (lock.userId() != user.id()) {
-            throw new ForbiddenException("You cannot release another user's seats");
+            throw new ForbiddenException("You cannot use another user's seats");
         }
-        seatLockStore.release(lock);
+        return lock;
     }
 }

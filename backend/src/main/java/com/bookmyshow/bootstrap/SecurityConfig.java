@@ -35,6 +35,7 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JsonMapper jsonMapper) throws Exception {
+        // Order matters: the first matching rule wins.
         http.csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -42,9 +43,19 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/**")
                         .permitAll()
+                        // Razorpay calls this. The body signature is checked instead of a login.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/payments/razorpay/webhook")
+                        .permitAll()
                         .requestMatchers("/api/v1/admin/**")
                         .authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/**")
+                        // Public browse APIs, listed one by one. Any other GET (like bookings) needs a token.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/cities/**",
+                                "/api/v1/cinemas/**",
+                                "/api/v1/screens/**",
+                                "/api/v1/movies/**",
+                                "/api/v1/shows/**")
                         .permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                         .permitAll()

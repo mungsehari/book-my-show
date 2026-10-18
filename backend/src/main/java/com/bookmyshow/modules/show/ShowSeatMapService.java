@@ -27,21 +27,24 @@ public class ShowSeatMapService {
     private final ShowPriceRepository showPriceRepository;
     private final ScreenService screenService;
     private final SeatLockStore seatLockStore;
+    private final ShowSeatBookingService seatBookingService;
 
     public ShowSeatMapService(
             ShowRepository showRepository,
             ShowPriceRepository showPriceRepository,
             ScreenService screenService,
-            SeatLockStore seatLockStore) {
+            SeatLockStore seatLockStore,
+            ShowSeatBookingService seatBookingService) {
         this.showRepository = showRepository;
         this.showPriceRepository = showPriceRepository;
         this.screenService = screenService;
         this.seatLockStore = seatLockStore;
+        this.seatBookingService = seatBookingService;
     }
 
     /**
-     * A seat is UNAVAILABLE if its category has no price, LOCKED if someone holds it in checkout, else AVAILABLE.
-     * BOOKED comes with bookings.
+     * A seat is UNAVAILABLE if its category has no price, BOOKED if sold, LOCKED if someone holds it in checkout,
+     * else AVAILABLE.
      */
     public SeatMapResponse getSeatMap(long showId) {
         Show show = showRepository
@@ -58,13 +61,14 @@ public class ShowSeatMapService {
                 .flatMap(row -> row.seats().stream())
                 .map(SeatResponse::id)
                 .toList();
+        Set<Long> sold = seatBookingService.soldSeats(showId);
         Set<Long> locked = seatLockStore.lockedSeats(showId, seatIds);
 
         List<SeatMapRow> rows = layout.rows().stream()
                 .map(row -> new SeatMapRow(
                         row.label(),
                         row.seats().stream()
-                                .map(seat -> toSeat(seat, prices, locked))
+                                .map(seat -> toSeat(seat, prices, sold, locked))
                                 .toList()))
                 .toList();
         List<CategoryPrice> categoryPrices = prices.entrySet().stream()
@@ -84,11 +88,14 @@ public class ShowSeatMapService {
                 rows);
     }
 
-    private static SeatMapSeat toSeat(SeatResponse seat, Map<String, BigDecimal> prices, Set<Long> locked) {
+    private static SeatMapSeat toSeat(
+            SeatResponse seat, Map<String, BigDecimal> prices, Set<Long> sold, Set<Long> locked) {
         BigDecimal price = prices.get(seat.category());
         String status;
         if (price == null) {
             status = SeatStatus.UNAVAILABLE;
+        } else if (sold.contains(seat.id())) {
+            status = SeatStatus.BOOKED;
         } else if (locked.contains(seat.id())) {
             status = SeatStatus.LOCKED;
         } else {

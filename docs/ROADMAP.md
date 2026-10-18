@@ -38,7 +38,7 @@ Each step is one small change with its own plan and approval.
 | 1.5 | Users and login (JWT) | Network unlock | Done (email, phone OTP with console SMS, Google) |
 | 1.6 | Seat map and availability per show | 1.3 | Done (category prices; every seat AVAILABLE until locks and bookings) |
 | 1.7 | Seat lock with Redis | Network unlock, Redis compose file | Done (10 min locks, all or none, one lock per user per show) |
-| 1.8 | Booking and test payment with webhook (Razorpay test mode) | Network unlock, Razorpay test keys in `.env` | Planned |
+| 1.8 | Booking and test payment with webhook (Razorpay test mode) | Razorpay test keys in `.env` | Done (no SDK; expiry job and refunds still to do) |
 | 1.9 | Ticket with signed QR | 1.8 | Planned |
 | 1.10 | Booking history | 1.8 | Planned |
 | 1.11 | Next.js frontend | Network unlock | Planned |

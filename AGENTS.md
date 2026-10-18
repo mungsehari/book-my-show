@@ -8,7 +8,7 @@ Edit rules here only. Tool-specific files (`CLAUDE.md`, `GEMINI.md`, `.cursor/ru
 
 Book My Show: a movie and event ticket booking app.
 
-Status: browse APIs (cities, cinemas, screens, shows, movies), login (email, phone OTP, Google), and admin APIs to add movies, screens, and shows.
+Status: browse APIs (cities, cinemas, screens, shows, movies), login (email, phone OTP, Google), admin APIs to add movies, screens, and shows, seat locks (Redis), and booking with Razorpay test payments.
 
 Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -50,9 +50,9 @@ backend/src/main/java/com/bookmyshow/
 ├── BookMyShowApplication.java   # starts the app, imports Bootstrap only
 ├── bootstrap/                   # startup setup, one concern per file
 ├── security/                    # JWT issuing, roles, current user
-├── integrations/                # third-party services (sms, google)
+├── integrations/                # third-party services (sms, google, payment)
 ├── common/                      # error, response, cache, util
-└── modules/                     # business features (city, cinema, show, movie, screen, user)
+└── modules/                     # business features (city, cinema, show, movie, screen, user, booking)
 ```
 
 Structure rules:
