@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.bookmyshow.common.error.NotFoundException;
+import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
 import com.bookmyshow.modules.show.ShowTypes.ShowResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -34,11 +35,12 @@ class ShowControllerTest {
     void listsShowsForDate() throws Exception {
         when(showService.listByCinema(10L, DATE))
                 .thenReturn(List.of(new ShowResponse(
-                        100L, 10L, "The Last Monsoon", DATE, LocalTime.of(18, 30), new BigDecimal("320.00"))));
+                        100L, 10L, 5L, "The Last Monsoon", DATE, LocalTime.of(18, 30), new BigDecimal("320.00"))));
 
         mockMvc.perform(get("/api/v1/cinemas/10/shows").param("date", "2026-10-17"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.items[0].movieId").value(5))
                 .andExpect(jsonPath("$.items[0].movieName").value("The Last Monsoon"))
                 .andExpect(jsonPath("$.items[0].showDate").value("2026-10-17"))
                 .andExpect(jsonPath("$.items[0].startTime").value("18:30:00"));
@@ -67,5 +69,33 @@ class ShowControllerTest {
         mockMvc.perform(get("/api/v1/cinemas/99/shows").param("date", "2026-10-17"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Cinema 99 not found"));
+    }
+
+    @Test
+    void listsMoviesInCity() throws Exception {
+        when(showService.listMoviesInCity(eq(1L), isNull()))
+                .thenReturn(List.of(new MovieResponse(
+                        2L, "Sky Riders", "Plot.", "English", "Action", 128, "UA", LocalDate.of(2026, 10, 2), null)));
+
+        mockMvc.perform(get("/api/v1/cities/1/movies"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.items[0].title").value("Sky Riders"));
+    }
+
+    @Test
+    void returns400ForBadDateOnCityMovies() throws Exception {
+        mockMvc.perform(get("/api/v1/cities/1/movies").param("date", "2026-13-01"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid value for 'date'"));
+    }
+
+    @Test
+    void returns404WhenCityMissingOnCityMovies() throws Exception {
+        when(showService.listMoviesInCity(99L, DATE)).thenThrow(new NotFoundException("City 99 not found"));
+
+        mockMvc.perform(get("/api/v1/cities/99/movies").param("date", "2026-10-17"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("City 99 not found"));
     }
 }

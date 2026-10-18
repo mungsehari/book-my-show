@@ -8,7 +8,9 @@ Edit rules here only. Tool-specific files (`CLAUDE.md`, `GEMINI.md`, `.cursor/ru
 
 Book My Show: a movie and event ticket booking app.
 
-Status: boilerplate. Read-only list APIs for cities, cinemas, and shows.
+Status: boilerplate. Read-only list APIs for cities, cinemas, shows, and movies.
+
+Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Working rules
 
@@ -36,6 +38,7 @@ Status: boilerplate. Read-only list APIs for cities, cinemas, and shows.
 | API docs | springdoc OpenAPI (Swagger UI) |
 | Tests | JUnit 5, MockMvc |
 | Local infra | Docker Compose |
+| Frontend | Next.js (planned) |
 | Later | Redis (cache, seat lock), Elasticsearch (search) |
 
 ## Project structure
@@ -47,7 +50,7 @@ backend/src/main/java/com/bookmyshow/
 ├── security/                    # JWT (later)
 ├── integrations/                # third-party services (later)
 ├── common/                      # error, response, cache, util
-└── modules/                     # business features (city, cinema, show)
+└── modules/                     # business features (city, cinema, show, movie)
 ```
 
 Structure rules:

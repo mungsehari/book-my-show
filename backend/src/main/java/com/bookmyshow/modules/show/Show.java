@@ -10,7 +10,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-/** A movie show at a cinema. A movies table comes later, so the name is stored here for now. */
+/**
+ * A movie show at a cinema. movieId links to the movie catalog and is null until every show is linked. movieName stays
+ * until then.
+ */
 @Entity
 @Table(name = "shows")
 public class Show {
@@ -21,6 +24,9 @@ public class Show {
 
     @Column(name = "cinema_id", nullable = false)
     private Long cinemaId;
+
+    @Column(name = "movie_id")
+    private Long movieId;
 
     @Column(name = "movie_name", nullable = false, length = 200)
     private String movieName;
@@ -36,8 +42,10 @@ public class Show {
 
     protected Show() {}
 
-    public Show(Long cinemaId, String movieName, LocalDate showDate, LocalTime startTime, BigDecimal price) {
+    public Show(
+            Long cinemaId, Long movieId, String movieName, LocalDate showDate, LocalTime startTime, BigDecimal price) {
         this.cinemaId = cinemaId;
+        this.movieId = movieId;
         this.movieName = movieName;
         this.showDate = showDate;
         this.startTime = startTime;
@@ -50,6 +58,10 @@ public class Show {
 
     public Long getCinemaId() {
         return cinemaId;
+    }
+
+    public Long getMovieId() {
+        return movieId;
     }
 
     public String getMovieName() {

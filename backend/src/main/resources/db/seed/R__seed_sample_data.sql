@@ -20,6 +20,12 @@ FROM (VALUES ('Mumbai', 'Maharashtra', 'City Cineplex Andheri', 'Andheri West, M
 JOIN cities c ON c.name = v.city AND c.state = v.state
 ON CONFLICT (city_id, name) DO NOTHING;
 
+INSERT INTO movies (title, description, language, genre, duration_minutes, certificate, release_date)
+VALUES ('The Last Monsoon', 'A fishing family waits out one last storm season.', 'Hindi', 'Drama', 142, 'UA', DATE '2026-09-25'),
+       ('Sky Riders', 'Two rival pilots race across the Himalayas.', 'English', 'Action', 128, 'UA', DATE '2026-10-02'),
+       ('Code Red Mumbai', 'A cyber cop has one night to stop a city-wide blackout.', 'Hindi', 'Thriller', 135, 'A', DATE '2026-10-09')
+ON CONFLICT (title, language) DO NOTHING;
+
 INSERT INTO shows (cinema_id, movie_name, show_date, start_time, price)
 SELECT ci.id, v.movie, CURRENT_DATE + v.day_offset, v.start_time::TIME, v.price
 FROM (VALUES ('City Cineplex Andheri', 'The Last Monsoon', 0, '10:00', 250.00),
@@ -32,3 +38,9 @@ FROM (VALUES ('City Cineplex Andheri', 'The Last Monsoon', 0, '10:00', 250.00),
          AS v (cinema, movie, day_offset, start_time, price)
 JOIN cinemas ci ON ci.name = v.cinema
 ON CONFLICT (cinema_id, show_date, start_time, movie_name) DO NOTHING;
+
+-- Link sample shows to their movie. Same rule as V3: only when the title matches exactly one movie.
+UPDATE shows s
+SET movie_id = (SELECT m.id FROM movies m WHERE m.title = s.movie_name)
+WHERE s.movie_id IS NULL
+  AND (SELECT COUNT(*) FROM movies m WHERE m.title = s.movie_name) = 1;

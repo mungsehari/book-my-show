@@ -5,10 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.bookmyshow.common.error.NotFoundException;
 import com.bookmyshow.modules.cinema.CinemaService;
+import com.bookmyshow.modules.movie.MovieService;
+import com.bookmyshow.modules.movie.MovieTypes.MovieResponse;
 import com.bookmyshow.modules.show.ShowTypes.ShowResponse;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -27,25 +30,28 @@ class ShowServiceTest {
 
     private ShowRepository showRepository;
     private CinemaService cinemaService;
+    private MovieService movieService;
     private ShowService showService;
 
     @BeforeEach
     void setUp() {
         showRepository = mock(ShowRepository.class);
         cinemaService = mock(CinemaService.class);
-        showService = new ShowService(showRepository, cinemaService, CLOCK);
+        movieService = mock(MovieService.class);
+        showService = new ShowService(showRepository, cinemaService, movieService, CLOCK);
     }
 
     @Test
     void usesTodayInAppTimeZoneWhenDateMissing() {
         LocalDate today = LocalDate.of(2026, 10, 18);
-        Show show = new Show(10L, "Sky Riders", today, LocalTime.of(14, 0), new BigDecimal("280.00"));
+        Show show = new Show(10L, 2L, "Sky Riders", today, LocalTime.of(14, 0), new BigDecimal("280.00"));
         when(showRepository.findAllByCinemaIdAndShowDateOrderByStartTimeAsc(10L, today))
                 .thenReturn(List.of(show));
 
         List<ShowResponse> result = showService.listByCinema(10L, null);
 
         assertThat(result).singleElement().satisfies(r -> {
+            assertThat(r.movieId()).isEqualTo(2L);
             assertThat(r.movieName()).isEqualTo("Sky Riders");
             assertThat(r.showDate()).isEqualTo(today);
         });
@@ -70,5 +76,46 @@ class ShowServiceTest {
         assertThatThrownBy(() -> showService.listByCinema(99L, null))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("Cinema 99 not found");
+    }
+
+    @Test
+    void listsMoviesInCityForNextSevenDaysWhenDateMissing() {
+        LocalDate today = LocalDate.of(2026, 10, 18);
+        MovieResponse movie = new MovieResponse(
+                2L, "Sky Riders", "Plot.", "English", "Action", 128, "UA", LocalDate.of(2026, 10, 2), null);
+        when(cinemaService.listIdsByCity(1L)).thenReturn(List.of(10L, 11L));
+        when(showRepository.findMovieIdsPlaying(List.of(10L, 11L), today, today.plusDays(6)))
+                .thenReturn(List.of(2L));
+        when(movieService.listByIds(List.of(2L))).thenReturn(List.of(movie));
+
+        assertThat(showService.listMoviesInCity(1L, null)).containsExactly(movie);
+    }
+
+    @Test
+    void listsMoviesInCityForGivenDateOnly() {
+        LocalDate date = LocalDate.of(2026, 10, 20);
+        when(cinemaService.listIdsByCity(1L)).thenReturn(List.of(10L));
+        when(showRepository.findMovieIdsPlaying(List.of(10L), date, date)).thenReturn(List.of());
+        when(movieService.listByIds(List.of())).thenReturn(List.of());
+
+        assertThat(showService.listMoviesInCity(1L, date)).isEmpty();
+        verify(showRepository).findMovieIdsPlaying(List.of(10L), date, date);
+    }
+
+    @Test
+    void returnsNoMoviesWhenCityHasNoCinemas() {
+        when(cinemaService.listIdsByCity(1L)).thenReturn(List.of());
+
+        assertThat(showService.listMoviesInCity(1L, null)).isEmpty();
+        verifyNoInteractions(showRepository, movieService);
+    }
+
+    @Test
+    void failsWhenCityMissing() {
+        when(cinemaService.listIdsByCity(99L)).thenThrow(new NotFoundException("City 99 not found"));
+
+        assertThatThrownBy(() -> showService.listMoviesInCity(99L, null))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("City 99 not found");
     }
 }

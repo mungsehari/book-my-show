@@ -11,15 +11,24 @@ Backend boilerplate with read-only list APIs.
 | `GET /api/v1/cities` | All cities |
 | `GET /api/v1/cities/{cityId}/cinemas` | Cinemas in a city |
 | `GET /api/v1/cinemas/{cinemaId}/shows?date=yyyy-MM-dd` | Shows at a cinema on a date (default today) |
+| `GET /api/v1/cities/{cityId}/movies?date=yyyy-MM-dd` | Movies playing in a city on a date (default next 7 days) |
+| `GET /api/v1/movies?language=Hindi` | All movies, or movies in one language |
+| `GET /api/v1/movies/{movieId}` | One movie |
 
 Stack: Java 21, Spring Boot 4, PostgreSQL, Flyway, Docker Compose. See `AGENTS.md` for structure and rules.
 
 ## Planned features
 
-- Browse movies and events by city
-- View showtimes and venues
-- Pick seats and book tickets
-- User accounts and booking history
+Full list with phases and technical notes: [docs/ROADMAP.md](docs/ROADMAP.md).
+
+| Phase | Focus |
+|---|---|
+| 1 | Core booking: movies, seat map, seat lock, payment, ticket, login |
+| 2 | Group booking: poll, split payment, seats together, waitlist |
+| 3 | Trust and resale: verified reviews, face-value resale |
+| 4 | Smart pricing: last-minute deals, price alerts, crowd meter |
+| 5 | Experience: seat view preview, quiet shows, accessibility |
+| 6 | AI: mood search, weekend planner |
 
 ## Getting started
 
