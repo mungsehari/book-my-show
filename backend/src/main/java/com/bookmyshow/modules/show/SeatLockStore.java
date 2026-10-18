@@ -56,6 +56,21 @@ class SeatLockStore {
             return freed
             """, Long.class);
 
+    /**
+     * KEYS: seat keys, then user key, then lock key. ARGV: lock ID, new TTL in ms. Gives the lock more time, only if it
+     * still exists. Returns 1 if extended, 0 if the lock is gone.
+     */
+    private static final DefaultRedisScript<Long> EXTEND = new DefaultRedisScript<>("""
+            if redis.call('EXISTS', KEYS[#KEYS]) == 0 then return 0 end
+            for i = 1, #KEYS - 1 do
+              if redis.call('GET', KEYS[i]) == ARGV[1] then
+                redis.call('PEXPIRE', KEYS[i], ARGV[2])
+              end
+            end
+            redis.call('PEXPIRE', KEYS[#KEYS], ARGV[2])
+            return 1
+            """, Long.class);
+
     private final StringRedisTemplate redis;
 
     SeatLockStore(StringRedisTemplate redis) {
@@ -92,6 +107,15 @@ class SeatLockStore {
         keys.add(userKey(lock.userId(), lock.showId()));
         keys.add(lockKey(lock.lockId()));
         redis.execute(RELEASE, keys, lock.lockId());
+    }
+
+    /** Gives a held lock a new time to live. False if the lock already expired. */
+    boolean extend(HeldLock lock, Duration ttl) {
+        List<String> keys = new ArrayList<>(seatKeys(lock.showId(), lock.seatIds()));
+        keys.add(userKey(lock.userId(), lock.showId()));
+        keys.add(lockKey(lock.lockId()));
+        Long result = redis.execute(EXTEND, keys, lock.lockId(), Long.toString(ttl.toMillis()));
+        return result != null && result == 1;
     }
 
     /** Seat IDs from the given list that are locked right now, by anyone. */

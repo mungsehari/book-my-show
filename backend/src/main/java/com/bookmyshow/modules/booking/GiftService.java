@@ -33,6 +33,7 @@ public class GiftService {
         if (!BookingStatus.CONFIRMED.equals(booking.getStatus()) || booking.getCheckedInAt() != null) {
             throw new ConflictException("Only a confirmed, unused ticket can be given");
         }
+        RefundService.ensureNotSplit(booking);
         if (booking.isListedForResale()) {
             throw new ConflictException("This ticket is on resale. Stop the resale first.");
         }

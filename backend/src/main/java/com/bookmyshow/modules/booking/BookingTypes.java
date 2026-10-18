@@ -2,7 +2,10 @@ package com.bookmyshow.modules.booking;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -98,6 +101,29 @@ public final class BookingTypes {
     /** The friend (or anyone with an account) who gets the ticket, by exact email. */
     public record GiftRequest(
             @NotBlank @Email @Size(max = 255) String email) {}
+
+    /** Split the locked seats with 1 to 9 friends. Each pays an equal share; the organizer also pays any leftover paise. */
+    public record CreateSplitRequest(
+            @NotBlank @Pattern(regexp = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+            String lockId,
+
+            @NotEmpty @Size(max = 9) List<@NotNull @Positive Long> friendIds) {}
+
+    /** One person's share. Pay it in Razorpay checkout with razorpayOrderId, then confirm it. */
+    public record ShareResponse(
+            Long id,
+            Long bookingId,
+            Long userId,
+            BigDecimal amount,
+            long amountInPaise,
+            String currency,
+            String status,
+            String razorpayOrderId,
+            String razorpayKeyId) {}
+
+    /** The split booking stays PENDING_PAYMENT until every share is PAID, or expires at expiresAt. */
+    public record SplitResponse(
+            Long bookingId, String status, BigDecimal total, Instant expiresAt, List<ShareResponse> shares) {}
 
     public record CheckInRequest(@NotBlank @Size(max = 100) String ticketCode) {}
 }

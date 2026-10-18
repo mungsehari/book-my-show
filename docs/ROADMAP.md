@@ -50,7 +50,7 @@ Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and dr
 | Feature | What it does | Technical challenge |
 |---|---|---|
 | Group poll (Done) | Friends vote on a movie and a show | Shared poll link, live vote count |
-| Split payment | One person locks seats, each friend pays their share | Longer seat lock, partial payments, refund if the group does not finish |
+| Split payment (Done; cancel, resale, and gift of split bookings still to do) | One person locks seats, each friend pays their share | Longer seat lock, partial payments, refund if the group does not finish |
 | Seats together | Show only shows where the whole group can sit side by side | Search for N adjacent free seats |
 | Waitlist (Done) | When a housefull show gets a cancellation, offer the seat to the next person | Queue per show, offer timeout, fair order |
 | Virtual waiting room | Queue users fairly when a big release opens for booking | Admission tokens, rate limits, protect the seat lock service |

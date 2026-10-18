@@ -18,8 +18,11 @@ interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByMovieIdAndStatusAndUserIdIn(Long movieId, String status, Collection<Long> userIds);
 
-    /** Unpaid checkouts older than the cut-off, for the expiry job. */
-    List<Booking> findTop100ByStatusAndCreatedAtBefore(String status, Instant before);
+    /** Unpaid one-payer checkouts older than the cut-off, for the expiry job. */
+    List<Booking> findTop100ByStatusAndSplitFalseAndCreatedAtBefore(String status, Instant before);
+
+    /** Unpaid split checkouts older than the cut-off, for the split expiry job. */
+    List<Booking> findTop100ByStatusAndSplitTrueAndCreatedAtBefore(String status, Instant before);
 
     /** Resale tickets on offer for a show. */
     List<Booking> findByShowIdAndStatusAndResaleListedAtIsNotNullOrderByResaleListedAtAsc(Long showId, String status);

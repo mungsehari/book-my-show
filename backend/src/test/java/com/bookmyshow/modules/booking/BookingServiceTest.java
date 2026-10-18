@@ -58,6 +58,7 @@ class BookingServiceTest {
     private PaymentGateway paymentGateway;
     private ResaleCompletion resaleCompletion;
     private WaitlistService waitlistService;
+    private BookingMemberRepository memberRepository;
     private BookingService bookingService;
 
     @BeforeEach
@@ -69,6 +70,7 @@ class BookingServiceTest {
         when(paymentGateway.publicKey()).thenReturn("rzp_test_abc");
         resaleCompletion = mock(ResaleCompletion.class);
         waitlistService = mock(WaitlistService.class);
+        memberRepository = mock(BookingMemberRepository.class);
         bookingService = new BookingService(
                 bookingRepository,
                 seatLockService,
@@ -76,6 +78,7 @@ class BookingServiceTest {
                 paymentGateway,
                 resaleCompletion,
                 waitlistService,
+                memberRepository,
                 Clock.fixed(Instant.parse("2026-10-18T05:00:00Z"), ZoneOffset.UTC));
     }
 
@@ -106,7 +109,7 @@ class BookingServiceTest {
     @Test
     void lateUnpaidCheckoutsExpire() {
         Booking stale = pending();
-        when(bookingRepository.findTop100ByStatusAndCreatedAtBefore(
+        when(bookingRepository.findTop100ByStatusAndSplitFalseAndCreatedAtBefore(
                         BookingStatus.PENDING_PAYMENT, Instant.parse("2026-10-18T04:45:00Z")))
                 .thenReturn(List.of(stale));
 

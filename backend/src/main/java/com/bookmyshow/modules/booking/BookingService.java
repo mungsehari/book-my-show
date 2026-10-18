@@ -65,6 +65,7 @@ public class BookingService {
     private final PaymentGateway paymentGateway;
     private final ResaleCompletion resaleCompletion;
     private final WaitlistService waitlistService;
+    private final BookingMemberRepository memberRepository;
     private final Clock clock;
 
     public BookingService(
@@ -74,6 +75,7 @@ public class BookingService {
             PaymentGateway paymentGateway,
             ResaleCompletion resaleCompletion,
             WaitlistService waitlistService,
+            BookingMemberRepository memberRepository,
             Clock clock) {
         this.bookingRepository = bookingRepository;
         this.seatLockService = seatLockService;
@@ -81,6 +83,7 @@ public class BookingService {
         this.paymentGateway = paymentGateway;
         this.resaleCompletion = resaleCompletion;
         this.waitlistService = waitlistService;
+        this.memberRepository = memberRepository;
         this.clock = clock;
     }
 
@@ -193,7 +196,8 @@ public class BookingService {
 
     public BookingResponse get(long bookingId, CurrentUser user) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> notFound(bookingId));
-        if (booking.getUserId() != user.id() && !user.isAdmin()) {
+        boolean member = booking.isSplit() && memberRepository.existsByBookingIdAndUserId(bookingId, user.id());
+        if (booking.getUserId() != user.id() && !user.isAdmin() && !member) {
             throw new ForbiddenException("This booking belongs to another user");
         }
         return BookingResponse.from(booking);
@@ -224,7 +228,7 @@ public class BookingService {
     /** Run by a job: unpaid checkouts older than {@link #PAYMENT_TIMEOUT} become EXPIRED. Returns how many. */
     @Transactional
     public int expireStale() {
-        List<Booking> stale = bookingRepository.findTop100ByStatusAndCreatedAtBefore(
+        List<Booking> stale = bookingRepository.findTop100ByStatusAndSplitFalseAndCreatedAtBefore(
                 BookingStatus.PENDING_PAYMENT, clock.instant().minus(PAYMENT_TIMEOUT));
         stale.forEach(Booking::markExpired);
         return stale.size();

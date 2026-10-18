@@ -50,6 +50,7 @@ public class ResaleService {
         if (!BookingStatus.CONFIRMED.equals(booking.getStatus()) || booking.getCheckedInAt() != null) {
             throw new ConflictException("Only a confirmed, unused ticket can be resold");
         }
+        RefundService.ensureNotSplit(booking);
         refundService.ensureBeforeCutoff(booking, "Resale");
         if (!booking.isListedForResale()) {
             booking.listForResale(clock.instant());

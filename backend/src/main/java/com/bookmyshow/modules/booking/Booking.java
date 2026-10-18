@@ -110,6 +110,10 @@ public class Booking {
     @Column(name = "gifted_from_user_id")
     private Long giftedFromUserId;
 
+    /** Paid by a group, one share each (see PaymentShare). The owner is the organizer. */
+    @Column(nullable = false)
+    private Boolean split = false;
+
     protected Booking() {}
 
     /**
@@ -208,6 +212,14 @@ public class Booking {
         this.razorpayRefundId = refundId;
         this.refundedAt = now;
         this.resaleListedAt = null;
+    }
+
+    void markSplit() {
+        this.split = true;
+    }
+
+    public boolean isSplit() {
+        return Boolean.TRUE.equals(split);
     }
 
     /** The ticket now belongs to someone else. No money moves. */

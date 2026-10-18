@@ -99,6 +99,16 @@ Social (login needed):
 | `GET /api/v1/polls/mine`, `GET /api/v1/polls/{id}` | Your polls, with vote counts |
 | `POST /api/v1/polls/{id}/vote`, `POST /api/v1/polls/{id}/close` | Vote (changeable). The creator closes: most votes wins, the earlier show wins a tie. |
 
+Split payment (login needed):
+
+| API | Does |
+|---|---|
+| `POST /api/v1/bookings/split` | Split locked seats with 1 to 9 friends: `{"lockId", "friendIds": [...]}`. Everyone gets an equal share (the organizer also pays any leftover paise) and their own Razorpay order. The seat lock is extended to 15 minutes. |
+| `GET /api/v1/payment-shares/me` | Your unpaid shares, with the Razorpay order to pay |
+| `POST /api/v1/payment-shares/{shareId}/confirm` | Confirm your share with what Razorpay checkout returned. The webhook does the same. |
+
+When the last share is paid the seats are sold and the booking is confirmed. If 15 minutes pass first, or the seats were lost, everyone who paid is refunded. The organizer owns the ticket; friends can see the booking and ticket. Cancel, resale, and gift are not available for split bookings yet.
+
 AI and planning:
 
 | API | Does |

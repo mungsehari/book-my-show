@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 import com.bookmyshow.common.error.BadRequestException;
 import com.bookmyshow.common.error.UnauthorizedException;
 import com.bookmyshow.integrations.payment.PaymentGateway;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,8 @@ class PaymentWebhookServiceTest {
     private BookingService bookingService;
     private PaymentGateway paymentGateway;
     private PaymentWebhookService webhookService;
+    private PaymentShareRepository shareRepository;
+    private SplitService splitService;
 
     @BeforeEach
     void setUp() {
@@ -30,11 +34,26 @@ class PaymentWebhookServiceTest {
         bookingService = mock(BookingService.class);
         paymentGateway = mock(PaymentGateway.class);
         when(paymentGateway.isValidWebhookSignature(anyString(), anyString())).thenReturn(true);
+        shareRepository = mock(PaymentShareRepository.class);
+        splitService = mock(SplitService.class);
         webhookService = new PaymentWebhookService(
                 bookingRepository,
                 bookingService,
+                shareRepository,
+                splitService,
                 paymentGateway,
                 JsonMapper.builder().build());
+    }
+
+    @Test
+    void capturedShareGoesToSplitService() {
+        PaymentShare share = new PaymentShare(9L, 8L, new BigDecimal("100.00"), "INR", Instant.now());
+        when(bookingRepository.findByRazorpayOrderIdForUpdate("order_1")).thenReturn(Optional.empty());
+        when(shareRepository.findByRazorpayOrderIdForUpdate("order_1")).thenReturn(Optional.of(share));
+
+        webhookService.handle(body("payment.captured"), "sig");
+
+        verify(splitService).applyPayment(share, "pay_1");
     }
 
     @Test

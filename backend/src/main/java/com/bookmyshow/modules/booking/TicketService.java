@@ -24,6 +24,7 @@ public class TicketService {
     private final TicketCodes ticketCodes;
     private final CinemaService cinemaService;
     private final CinemaAccessService cinemaAccessService;
+    private final BookingMemberRepository memberRepository;
     private final Clock clock;
 
     public TicketService(
@@ -31,19 +32,23 @@ public class TicketService {
             TicketCodes ticketCodes,
             CinemaService cinemaService,
             CinemaAccessService cinemaAccessService,
+            BookingMemberRepository memberRepository,
             Clock clock) {
         this.bookingRepository = bookingRepository;
         this.ticketCodes = ticketCodes;
         this.cinemaService = cinemaService;
         this.cinemaAccessService = cinemaAccessService;
+        this.memberRepository = memberRepository;
         this.clock = clock;
     }
 
+    /** The owner, or a friend in a split booking, can see the ticket. */
     public TicketResponse getTicket(long bookingId, CurrentUser user) {
         Booking booking = bookingRepository
                 .findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking " + bookingId + " not found"));
-        if (booking.getUserId() != user.id()) {
+        boolean member = booking.isSplit() && memberRepository.existsByBookingIdAndUserId(bookingId, user.id());
+        if (booking.getUserId() != user.id() && !member) {
             throw new ForbiddenException("This booking belongs to another user");
         }
         if (!BookingStatus.CONFIRMED.equals(booking.getStatus())) {

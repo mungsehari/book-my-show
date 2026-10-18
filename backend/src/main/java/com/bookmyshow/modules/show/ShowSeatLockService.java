@@ -156,6 +156,16 @@ public class ShowSeatLockService {
         return result == LockResult.LOCKED ? Optional.of(lockId) : Optional.empty();
     }
 
+    /**
+     * Used by split payment: gives the owner's lock more time while friends pay. 404 if the lock already expired, 403
+     * if it is someone else's.
+     */
+    public void extendLock(String lockId, CurrentUser user, Duration ttl) {
+        if (!seatLockStore.extend(ownedLock(lockId, user), ttl)) {
+            throw new NotFoundException("Lock " + lockId + " not found or already expired");
+        }
+    }
+
     /** Used by the booking module once seats are sold. Does nothing if the lock already expired. */
     public void releaseAfterSale(String lockId) {
         seatLockStore.find(lockId).ifPresent(seatLockStore::release);

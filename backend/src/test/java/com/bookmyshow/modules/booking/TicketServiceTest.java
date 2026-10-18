@@ -125,7 +125,13 @@ class TicketServiceTest {
     }
 
     private TicketService service(Clock clock) {
-        return new TicketService(bookingRepository, ticketCodes, cinemaService, cinemaAccessService, clock);
+        return new TicketService(
+                bookingRepository,
+                ticketCodes,
+                cinemaService,
+                cinemaAccessService,
+                mock(BookingMemberRepository.class),
+                clock);
     }
 
     private static Booking confirmed() {

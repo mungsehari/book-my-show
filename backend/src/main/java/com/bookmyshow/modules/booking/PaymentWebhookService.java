@@ -22,16 +22,22 @@ public class PaymentWebhookService {
 
     private final BookingRepository bookingRepository;
     private final BookingService bookingService;
+    private final PaymentShareRepository shareRepository;
+    private final SplitService splitService;
     private final PaymentGateway paymentGateway;
     private final JsonMapper jsonMapper;
 
     public PaymentWebhookService(
             BookingRepository bookingRepository,
             BookingService bookingService,
+            PaymentShareRepository shareRepository,
+            SplitService splitService,
             PaymentGateway paymentGateway,
             JsonMapper jsonMapper) {
         this.bookingRepository = bookingRepository;
         this.bookingService = bookingService;
+        this.shareRepository = shareRepository;
+        this.splitService = splitService;
         this.paymentGateway = paymentGateway;
         this.jsonMapper = jsonMapper;
     }
@@ -56,11 +62,18 @@ public class PaymentWebhookService {
             return;
         }
 
-        bookingRepository
-                .findByRazorpayOrderIdForUpdate(orderId)
-                .ifPresentOrElse(
-                        booking -> apply(event, booking, paymentId),
-                        () -> log.info("Ignoring Razorpay webhook {} for unknown order {}", event, orderId));
+        var booking = bookingRepository.findByRazorpayOrderIdForUpdate(orderId);
+        if (booking.isPresent()) {
+            apply(event, booking.get(), paymentId);
+            return;
+        }
+        // Split payment: each share has its own order. A failed share payment can simply be retried.
+        var share = shareRepository.findByRazorpayOrderIdForUpdate(orderId);
+        if (share.isPresent() && ("payment.captured".equals(event) || "order.paid".equals(event))) {
+            splitService.applyPayment(share.get(), paymentId);
+            return;
+        }
+        log.info("Ignoring Razorpay webhook {} for order {}", event, orderId);
     }
 
     private void apply(String event, Booking booking, String paymentId) {

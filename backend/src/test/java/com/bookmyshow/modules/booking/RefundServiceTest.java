@@ -69,6 +69,18 @@ class RefundServiceTest {
     }
 
     @Test
+    void splitBookingCannotBeCancelledYet() {
+        Booking booking = confirmed();
+        booking.markSplit();
+        when(bookingRepository.findByIdForUpdate(9L)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> service("2026-10-18T10:00:00Z").cancel(9L, ASHA))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("split booking");
+        verifyNoInteractions(paymentGateway);
+    }
+
+    @Test
     void usedTicketCannotBeCancelled() {
         Booking booking = confirmed();
         booking.checkIn(2L, Instant.now());

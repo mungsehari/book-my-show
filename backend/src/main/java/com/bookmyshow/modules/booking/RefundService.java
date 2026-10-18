@@ -60,6 +60,7 @@ public class RefundService {
         if (booking.getCheckedInAt() != null) {
             throw new ConflictException("This ticket was already used at the entry");
         }
+        ensureNotSplit(booking);
         ensureBeforeCutoff(booking, "Cancelling");
 
         String refundId = paymentGateway.refund(
@@ -105,6 +106,13 @@ public class RefundService {
             throw new ForbiddenException("This booking belongs to another user");
         }
         return booking;
+    }
+
+    /** Cancel, resale, and gift need one refund per person for split bookings, which is not built yet. */
+    static void ensureNotSplit(Booking booking) {
+        if (booking.isSplit()) {
+            throw new ConflictException("A split booking cannot be cancelled, resold, or given away yet");
+        }
     }
 
     void ensureBeforeCutoff(Booking booking, String action) {
