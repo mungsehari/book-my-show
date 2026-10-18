@@ -54,6 +54,10 @@ public class Show {
     @Column(nullable = false)
     private Boolean subtitles = false;
 
+    /** Last-minute deals allowed. On unless the theatre turns it off. */
+    @Column(name = "deals_enabled", nullable = false)
+    private Boolean dealsEnabled = true;
+
     protected Show() {}
 
     public Show(
@@ -77,6 +81,14 @@ public class Show {
         this.quiet = quiet;
         this.sensoryFriendly = sensoryFriendly;
         this.subtitles = subtitles;
+    }
+
+    void setDealsEnabled(boolean dealsEnabled) {
+        this.dealsEnabled = dealsEnabled;
+    }
+
+    public boolean isDealsEnabled() {
+        return !Boolean.FALSE.equals(dealsEnabled);
     }
 
     public boolean isQuiet() {

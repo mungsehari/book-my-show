@@ -125,6 +125,7 @@ public class ShowService {
                 Boolean.TRUE.equals(request.quiet()),
                 Boolean.TRUE.equals(request.sensoryFriendly()),
                 Boolean.TRUE.equals(request.subtitles()));
+        newShow.setDealsEnabled(!Boolean.FALSE.equals(request.lastMinuteDeals()));
         Show show = showRepository.save(newShow);
         showPriceRepository.saveAll(request.prices().entrySet().stream()
                 .map(entry -> new ShowPrice(show.getId(), entry.getKey(), entry.getValue()))

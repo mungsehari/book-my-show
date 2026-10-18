@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +22,8 @@ public final class ShowTypes {
 
     /**
      * Prices by seat category, for example {"REGULAR": 200, "PREMIUM": 300}. Every category on the screen needs one.
-     * quiet, sensoryFriendly, and subtitles are optional and default to false.
+     * quiet, sensoryFriendly, and subtitles are optional and default to false. lastMinuteDeals is optional and
+     * defaults to true.
      */
     public record CreateShowRequest(
             @NotNull @Positive Long movieId,
@@ -36,7 +38,8 @@ public final class ShowTypes {
 
             Boolean quiet,
             Boolean sensoryFriendly,
-            Boolean subtitles) {}
+            Boolean subtitles,
+            Boolean lastMinuteDeals) {}
 
     /** Optional filters for a cinema's shows. A null or false filter is not applied. */
     public record ShowFilters(boolean quiet, boolean sensoryFriendly, boolean subtitles, boolean wheelchair) {
@@ -74,7 +77,11 @@ public final class ShowTypes {
         }
     }
 
-    public record CategoryPrice(String category, BigDecimal price) {}
+    /** price is what the seat costs now. originalPrice is the price before any last-minute deal. */
+    public record CategoryPrice(String category, BigDecimal price, BigDecimal originalPrice) {}
+
+    /** A last-minute deal running now: percentOff on every seat until the show starts at endsAt. */
+    public record DealInfo(int percentOff, LocalDateTime endsAt) {}
 
     /**
      * How full a show is right now. Counts only seats for sale. percentFull counts sold and held seats. level is LOW
@@ -98,7 +105,8 @@ public final class ShowTypes {
             Long screenId,
             String screenName,
             List<CategoryPrice> prices,
-            List<SeatMapRow> rows) {}
+            List<SeatMapRow> rows,
+            DealInfo deal) {}
 
     public record LockSeatsRequest(@NotEmpty @Size(max = 10) List<@NotNull @Positive Long> seatIds) {}
 
