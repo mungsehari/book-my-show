@@ -10,6 +10,7 @@ import com.bookmyshow.integrations.payment.PaymentGateway.PaymentOrder;
 import com.bookmyshow.modules.booking.BookingTypes.BookingResponse;
 import com.bookmyshow.modules.booking.BookingTypes.CheckoutResponse;
 import com.bookmyshow.modules.booking.BookingTypes.ConfirmPaymentRequest;
+import com.bookmyshow.modules.booking.BookingTypes.MovieAudience;
 import com.bookmyshow.modules.show.ShowSeatBookingService;
 import com.bookmyshow.modules.show.ShowSeatLockService;
 import com.bookmyshow.modules.show.ShowTypes.ActiveLock;
@@ -19,8 +20,11 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -161,6 +165,30 @@ public class BookingService {
                                 .isAfter(now))
                 .map(Booking::getId)
                 .findFirst();
+    }
+
+    /**
+     * Used by friends activity. Of the given users, who watched this movie (paid booking, show started or checked in)
+     * and who is going (paid booking, show not started). One user can be in both.
+     */
+    public MovieAudience audienceOf(long movieId, Collection<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return new MovieAudience(Set.of(), Set.of());
+        }
+        LocalDateTime now = LocalDateTime.now(clock);
+        Set<Long> watched = new HashSet<>();
+        Set<Long> going = new HashSet<>();
+        for (Booking booking :
+                bookingRepository.findByMovieIdAndStatusAndUserIdIn(movieId, BookingStatus.CONFIRMED, userIds)) {
+            boolean started = !LocalDateTime.of(booking.getShowDate(), booking.getStartTime())
+                    .isAfter(now);
+            if (started || booking.getCheckedInAt() != null) {
+                watched.add(booking.getUserId());
+            } else {
+                going.add(booking.getUserId());
+            }
+        }
+        return new MovieAudience(Set.copyOf(watched), Set.copyOf(going));
     }
 
     public BookingResponse get(long bookingId, CurrentUser user) {

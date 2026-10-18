@@ -49,12 +49,12 @@ Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and dr
 
 | Feature | What it does | Technical challenge |
 |---|---|---|
-| Group poll | Friends vote on a movie and a show | Shared poll link, live vote count |
+| Group poll (Done) | Friends vote on a movie and a show | Shared poll link, live vote count |
 | Split payment | One person locks seats, each friend pays their share | Longer seat lock, partial payments, refund if the group does not finish |
 | Seats together | Show only shows where the whole group can sit side by side | Search for N adjacent free seats |
 | Waitlist (Done) | When a housefull show gets a cancellation, offer the seat to the next person | Queue per show, offer timeout, fair order |
 | Virtual waiting room | Queue users fairly when a big release opens for booking | Admission tokens, rate limits, protect the seat lock service |
-| Gift ticket | Book for someone else and send them a link | Transfer the ticket to the receiver's account |
+| Gift ticket (Done, to existing users by email) | Book for someone else and send them a link | Transfer the ticket to the receiver's account |
 
 ## Phase 3: Trust and resale
 
@@ -62,7 +62,7 @@ Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and dr
 |---|---|---|
 | Verified reviews (Done) | Only people who booked and watched can review | Link each review to a used ticket |
 | Ticket resale (Done, whole ticket only) | Resell a ticket at face value only | Ownership transfer, new QR, block price markup |
-| Friends activity | "3 friends watched this movie" | Friend graph, privacy settings |
+| Friends activity (Done, with friend requests and a privacy switch) | "3 friends watched this movie" | Friend graph, privacy settings |
 
 ## Phase 4: Smart pricing
 

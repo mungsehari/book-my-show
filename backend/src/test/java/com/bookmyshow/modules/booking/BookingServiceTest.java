@@ -20,6 +20,7 @@ import com.bookmyshow.integrations.payment.PaymentGateway.PaymentOrder;
 import com.bookmyshow.modules.booking.BookingTypes.BookingResponse;
 import com.bookmyshow.modules.booking.BookingTypes.CheckoutResponse;
 import com.bookmyshow.modules.booking.BookingTypes.ConfirmPaymentRequest;
+import com.bookmyshow.modules.booking.BookingTypes.MovieAudience;
 import com.bookmyshow.modules.show.ShowSeatBookingService;
 import com.bookmyshow.modules.show.ShowSeatLockService;
 import com.bookmyshow.modules.show.ShowTypes.ActiveLock;
@@ -35,6 +36,7 @@ import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -258,6 +260,22 @@ class BookingServiceTest {
         verify(bookingRepository).findByUserIdAndShowDateLessThanAndStatusIn(eq(7L), any(), any(), pageable.capture());
         assertThat(pageable.getValue().getSort().getOrderFor("showDate").isDescending())
                 .isTrue();
+    }
+
+    @Test
+    void audienceSplitsWatchedAndGoing() {
+        // The clock is 2026-10-18 05:00. Show 18:00 today is upcoming. A checked-in booking counts as watched.
+        Booking going = confirmedBooking();
+        Booking watched = confirmedBooking();
+        ReflectionTestUtils.setField(watched, "userId", 8L);
+        watched.checkIn(2L, Instant.parse("2026-10-18T04:50:00Z"));
+        when(bookingRepository.findByMovieIdAndStatusAndUserIdIn(2L, BookingStatus.CONFIRMED, Set.of(7L, 8L)))
+                .thenReturn(List.of(going, watched));
+
+        MovieAudience audience = bookingService.audienceOf(2L, Set.of(7L, 8L));
+
+        assertThat(audience.going()).containsExactly(7L);
+        assertThat(audience.watched()).containsExactly(8L);
     }
 
     @Test

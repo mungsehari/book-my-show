@@ -5,6 +5,7 @@ import com.bookmyshow.modules.booking.BookingTypes.BookingResponse;
 import com.bookmyshow.modules.booking.BookingTypes.CheckoutResponse;
 import com.bookmyshow.modules.booking.BookingTypes.ConfirmPaymentRequest;
 import com.bookmyshow.modules.booking.BookingTypes.CreateBookingRequest;
+import com.bookmyshow.modules.booking.BookingTypes.GiftRequest;
 import com.bookmyshow.security.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -35,10 +36,21 @@ public class BookingController {
 
     private final BookingService bookingService;
     private final RefundService refundService;
+    private final GiftService giftService;
 
-    public BookingController(BookingService bookingService, RefundService refundService) {
+    public BookingController(BookingService bookingService, RefundService refundService, GiftService giftService) {
         this.bookingService = bookingService;
         this.refundService = refundService;
+        this.giftService = giftService;
+    }
+
+    @PostMapping("/{bookingId}/gift")
+    @Operation(summary = "Give your ticket to another user, up to 2 hours before the show")
+    public BookingResponse gift(
+            @PathVariable @Positive long bookingId,
+            @Valid @RequestBody GiftRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        return giftService.gift(bookingId, request.email(), CurrentUser.from(jwt));
     }
 
     @PostMapping("/{bookingId}/cancel")

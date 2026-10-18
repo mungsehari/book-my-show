@@ -106,6 +106,10 @@ public class Booking {
     @Column(name = "resale_of_booking_id")
     private Long resaleOfBookingId;
 
+    /** Set when the ticket was given to the current owner as a gift. */
+    @Column(name = "gifted_from_user_id")
+    private Long giftedFromUserId;
+
     protected Booking() {}
 
     /**
@@ -204,6 +208,16 @@ public class Booking {
         this.razorpayRefundId = refundId;
         this.refundedAt = now;
         this.resaleListedAt = null;
+    }
+
+    /** The ticket now belongs to someone else. No money moves. */
+    void giftTo(long recipientUserId) {
+        this.giftedFromUserId = this.userId;
+        this.userId = recipientUserId;
+    }
+
+    public Long getGiftedFromUserId() {
+        return giftedFromUserId;
     }
 
     boolean isListedForResale() {

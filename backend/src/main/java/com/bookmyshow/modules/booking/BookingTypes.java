@@ -1,5 +1,6 @@
 package com.bookmyshow.modules.booking;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -8,6 +9,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
 
 /** All request and response types for the booking module. */
 public final class BookingTypes {
@@ -89,6 +91,13 @@ public final class BookingTypes {
     /** A ticket offered for resale. price is what the owner paid, the only price it can sell for. */
     public record ResaleListing(
             Long bookingId, Long showId, List<String> seats, BigDecimal price, String currency, boolean onHold) {}
+
+    /** Used by friends activity: who watched a movie, and who has a ticket for a show not started yet. */
+    public record MovieAudience(Set<Long> watched, Set<Long> going) {}
+
+    /** The friend (or anyone with an account) who gets the ticket, by exact email. */
+    public record GiftRequest(
+            @NotBlank @Email @Size(max = 255) String email) {}
 
     public record CheckInRequest(@NotBlank @Size(max = 100) String ticketCode) {}
 }

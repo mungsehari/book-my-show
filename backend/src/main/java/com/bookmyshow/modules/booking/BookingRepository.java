@@ -16,6 +16,8 @@ interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByLockId(String lockId);
 
+    List<Booking> findByMovieIdAndStatusAndUserIdIn(Long movieId, String status, Collection<Long> userIds);
+
     /** Unpaid checkouts older than the cut-off, for the expiry job. */
     List<Booking> findTop100ByStatusAndCreatedAtBefore(String status, Instant before);
 

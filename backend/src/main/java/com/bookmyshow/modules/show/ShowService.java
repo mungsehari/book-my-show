@@ -2,6 +2,7 @@ package com.bookmyshow.modules.show;
 
 import com.bookmyshow.common.error.BadRequestException;
 import com.bookmyshow.common.error.ConflictException;
+import com.bookmyshow.common.error.NotFoundException;
 import com.bookmyshow.modules.cinema.CinemaAccessService;
 import com.bookmyshow.modules.cinema.CinemaService;
 import com.bookmyshow.modules.movie.MovieService;
@@ -109,6 +110,14 @@ public class ShowService {
                         .isAfter(now))
                 .map(ShowResponse::from)
                 .toList();
+    }
+
+    /** Used by other modules (group polls). */
+    public ShowResponse getShow(long showId) {
+        return showRepository
+                .findById(showId)
+                .map(ShowResponse::from)
+                .orElseThrow(() -> new NotFoundException("Show " + showId + " not found"));
     }
 
     /** Lists movies playing in a city on a date. No date means the next 7 days, today included. */

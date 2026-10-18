@@ -38,7 +38,19 @@ public class User {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    /** When false, friends do not see this user's movie activity. */
+    @Column(name = "share_activity", nullable = false)
+    private Boolean shareActivity = true;
+
     protected User() {}
+
+    void setShareActivity(boolean shareActivity) {
+        this.shareActivity = shareActivity;
+    }
+
+    public boolean isShareActivity() {
+        return !Boolean.FALSE.equals(shareActivity);
+    }
 
     private User(String name, String role, Instant createdAt) {
         this.name = name;

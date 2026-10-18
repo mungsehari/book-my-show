@@ -66,6 +66,29 @@ class BookingControllerTest {
     @MockitoBean
     private RefundService refundService;
 
+    @MockitoBean
+    private GiftService giftService;
+
+    @Test
+    void giftsTicket() throws Exception {
+        when(giftService.gift(9L, "ravi@example.com", ASHA)).thenReturn(CONFIRMED_BOOKING);
+
+        mockMvc.perform(post("/api/v1/bookings/9/gift")
+                        .with(TestLogins.as(7L, Roles.USER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"ravi@example.com\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void giftNeedsValidEmail() throws Exception {
+        mockMvc.perform(post("/api/v1/bookings/9/gift")
+                        .with(TestLogins.as(7L, Roles.USER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"nope\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
     @Test
     void ownerCancels() throws Exception {
         when(refundService.cancel(9L, ASHA)).thenReturn(CONFIRMED_BOOKING);

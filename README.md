@@ -85,6 +85,20 @@ Price alerts (login needed): `POST /api/v1/price-alerts` with `{"movieId", "city
 
 Seat view photos (admin): `POST /api/v1/admin/screens/{screenId}/views` with `{"fromRow": "A", "toRow": "C", "imageUrl": "https://...", "caption"}`. Blocks on a screen may not overlap. Images are hosted elsewhere.
 
+Social (login needed):
+
+| API | Does |
+|---|---|
+| `POST /api/v1/friends/requests` | Send a friend request by exact email. If they already asked you, you become friends. |
+| `GET /api/v1/friends/requests` | Requests sent to you. Accept or decline with `/{id}/accept`, `/{id}/decline`. |
+| `GET /api/v1/friends` | Your friends. Remove one with `POST /api/v1/friends/{userId}/remove`. |
+| `GET /api/v1/friends/activity?movieId=` | Friends who watched the movie, and friends going to a show of it |
+| `GET/POST /api/v1/me/privacy` | `{"shareActivity": false}` hides your activity from friends |
+| `POST /api/v1/bookings/{bookingId}/gift` | Give your ticket to another user by email, up to 2 hours before the show. No money moves. |
+| `POST /api/v1/polls` | Ask friends to vote: `{"title", "showIds": [2-5 shows], "friendIds": [...]}` |
+| `GET /api/v1/polls/mine`, `GET /api/v1/polls/{id}` | Your polls, with vote counts |
+| `POST /api/v1/polls/{id}/vote`, `POST /api/v1/polls/{id}/close` | Vote (changeable). The creator closes: most votes wins, the earlier show wins a tie. |
+
 Jobs run every minute: unpaid checkouts expire after 15 minutes, and waitlist offers nobody took in 10 minutes go to the next person. Notifications (waitlist offers, refunds) are written to the backend log for now.
 
 Sold seats show as `BOOKED`. A seat can be sold only once (a unique key in the database). If a payment arrives after the seats were sold to someone else, the booking becomes `NEEDS_REFUND`.
