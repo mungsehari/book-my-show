@@ -1,4 +1,4 @@
-# Book My Show
+# Cinebee
 
 A movie and event ticket booking app.
 
@@ -175,6 +175,40 @@ Run format check and tests:
 ```bash
 ./scripts/ci/check.sh
 ```
+
+Run the frontend (Next.js, needs the backend running):
+
+```bash
+cd frontend && cp .env.example .env.local && npm install && npm run dev
+```
+
+Then open http://localhost:3000. Add `API_URL=http://localhost:8081` to `frontend/.env.local` for login.
+
+| Stage | What works |
+|---|---|
+| F1 | Home (city picker, now showing), movie page (showtimes by cinema), dark mode |
+| F2 | Login (email, phone OTP, register), account menu, My bookings (upcoming and past) |
+| F3 | Seat map (live, refreshed every 5 seconds), seat selection, 10 minute seat hold with countdown |
+| F4 | Razorpay test payment, booking confirm, QR ticket page, cancel |
+| A1 | Admin dashboard at `/admin`: add movie, build screen (live seat preview), add show (3 step wizard), scan ticket, food and parking, seat view photos, make theatre admin, refund |
+| F9b | Split payment: "Split with friends" on the seat hold, pay your share, `/shares` page for shares friends sent you |
+| F9a | Weekend planner (`/planner`), gift a ticket, resell at face value, buy resale tickets on the seat page |
+| F8 | Group polls: create with 2 to 5 shows and friends, live vote bars, share link, close and book the winner |
+| F7 | Friends page (add by email, accept or decline, remove), activity privacy switch, "friends watched this" on the movie page |
+| F6 | Waitlist on housefull shows (join, position, pay when seats are offered), price alerts (set on the movie page, list at `/alerts`) |
+| F5 | Mood search on the home page (AI when the Claude key is set, keyword fallback), movie reviews with star rating |
+
+For F4 set the Razorpay test keys in the root `.env` (backend). In test mode use card `4111 1111 1111 1111`, any future expiry and CVV, OTP `1234`. The webhook needs a tunnel, so on a laptop the confirm call from the browser is the main path.
+
+Phone OTP codes are printed in the backend console.
+
+To get the admin dashboard, set `ADMIN_EMAILS` in the root `.env` (backend), restart the backend, then register with that email. Theatre admins are made from `/admin/manage`.
+
+Google sign-in (optional):
+
+- In Google Cloud Console, create an OAuth client ID of type Web application. Add `http://localhost:3000` under Authorized JavaScript origins.
+- Put the same client ID in two places: `GOOGLE_CLIENT_ID` in the root `.env` (backend) and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` in `frontend/.env.local`.
+- Without the client ID the Google button is hidden and the other logins still work.
 
 ## AI agent setup
 

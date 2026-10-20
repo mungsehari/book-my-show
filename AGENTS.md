@@ -6,7 +6,7 @@ Edit rules here only. Tool-specific files (`CLAUDE.md`, `GEMINI.md`, `.cursor/ru
 
 ## Project
 
-Book My Show: a movie and event ticket booking app.
+Cinebee: a movie and event ticket booking app.
 
 Status: browse APIs (cities, cinemas, screens, shows, movies), login (email, phone OTP, Google), admin APIs to add movies, screens, and shows, seat locks (Redis), booking with Razorpay test payments, tickets with one-time check-in, booking history, cancel and refund, face-value resale, waitlist, crowd meter, show filters, verified reviews, last-minute deals, price alerts, seat view photos, friends and friends activity, gift tickets, group polls, split payment, AI mood search, and the weekend planner.
 
@@ -41,7 +41,7 @@ Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).
 | Tests | JUnit 5, MockMvc |
 | Cache and locks | Redis (seat locks, with Lua scripts) |
 | Local infra | Docker Compose |
-| Frontend | Next.js (planned) |
+| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind v4, shadcn/ui, TanStack Query (in `frontend/`) |
 | Later | Elasticsearch (search) |
 
 ## Project structure
@@ -69,6 +69,28 @@ Structure rules:
 - Schema changes go in `resources/db/migration/` as new Flyway files. Never edit a migration that already ran.
 - Sample data goes in `resources/db/seed/`. It loads only with the `local` profile and must be safe to run twice.
 - Tests mirror the main package structure.
+
+## Frontend structure
+
+```text
+frontend/src/
+├── app/            # routes only, thin pages, no business logic
+├── bootstrap/      # providers (query client, selected city), one concern per file
+├── components/     # ui/ (shadcn), layout/ (header and shell)
+├── lib/            # API client, formatters
+└── modules/        # one folder per backend feature: city, movie, cinema, show
+    └── <feature>/  # api.ts, types.ts, hooks.ts, components/
+```
+
+- Module names match the backend modules. Types mirror the backend response records.
+- Use the `@/` alias for imports, never `..` paths.
+- A module uses another module only through its public files (`hooks.ts`, `types.ts`, `components/`).
+- Pages in `app/` only compose module components.
+- Public data (movies, shows) is fetched by the browser from `NEXT_PUBLIC_API_URL` (see `frontend/.env.example`).
+- Login and anything that needs a token go through Next route handlers in `app/api/`. The JWT lives in an httpOnly cookie (`bms_token`) and never reaches browser JavaScript. The backend URL for these is `API_URL` (server only).
+- Google sign-in uses `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, the same ID as the backend `GOOGLE_CLIENT_ID`. It is a public ID, not a secret.
+- Server-only helpers live in `lib/server/`. `proxy.ts` sends signed-out users from `/bookings`, `/shows/*`, `/alerts`, `/friends`, `/polls/*`, `/planner`, `/shares`, and `/admin/*` to `/login`. Admin pages also check the role in the UI, but the real check is the backend `@PreAuthorize`. The browser reaches admin APIs only through `app/api/admin/[...path]`, which allows a fixed list of paths.
+- Keep files small (about 200 lines). One file, one job.
 
 ## Docker rules
 
@@ -103,6 +125,9 @@ Run from the repo root unless noted.
 | Check format | `cd backend && ./mvnw spotless:check` |
 | Fix format | `cd backend && ./mvnw spotless:apply` |
 | API docs | http://localhost:8080/swagger-ui.html |
+| Frontend install | `cd frontend && npm install` |
+| Run frontend | `cd frontend && npm run dev` (http://localhost:3000) |
+| Frontend lint and build | `cd frontend && npm run lint && npm run build` |
 
 Maven needs the network the first time. Ask the user to unlock it. With dependencies cached, use `./mvnw -o` (offline).
 
