@@ -1,6 +1,6 @@
 "use client";
 
-import { BellIcon, CalendarRangeIcon, HandCoinsIcon, LogOutIcon, TicketIcon, UsersIcon, VoteIcon } from "lucide-react";
+import { BellIcon, CalendarRangeIcon, HandCoinsIcon, LayoutDashboardIcon, LogOutIcon, TicketIcon, UsersIcon, VoteIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -44,6 +44,15 @@ export function UserMenu() {
           >
             <TicketIcon className="size-4" /> My bookings
           </Link>
+          {(user.role === "ADMIN" || user.role === "THEATRE_ADMIN") && (
+            <Link
+              href="/admin"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-primary hover:bg-muted"
+            >
+              <LayoutDashboardIcon className="size-4" /> Admin dashboard
+            </Link>
+          )}
           <Link
             href="/shares"
             onClick={() => setOpen(false)}

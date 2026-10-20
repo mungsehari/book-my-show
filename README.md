@@ -190,6 +190,7 @@ Then open http://localhost:3000. Add `API_URL=http://localhost:8081` to `fronten
 | F2 | Login (email, phone OTP, register), account menu, My bookings (upcoming and past) |
 | F3 | Seat map (live, refreshed every 5 seconds), seat selection, 10 minute seat hold with countdown |
 | F4 | Razorpay test payment, booking confirm, QR ticket page, cancel |
+| A1 | Admin dashboard at `/admin`: add movie, build screen (live seat preview), add show (3 step wizard), scan ticket, food and parking, seat view photos, make theatre admin, refund |
 | F9b | Split payment: "Split with friends" on the seat hold, pay your share, `/shares` page for shares friends sent you |
 | F9a | Weekend planner (`/planner`), gift a ticket, resell at face value, buy resale tickets on the seat page |
 | F8 | Group polls: create with 2 to 5 shows and friends, live vote bars, share link, close and book the winner |
@@ -200,6 +201,8 @@ Then open http://localhost:3000. Add `API_URL=http://localhost:8081` to `fronten
 For F4 set the Razorpay test keys in the root `.env` (backend). In test mode use card `4111 1111 1111 1111`, any future expiry and CVV, OTP `1234`. The webhook needs a tunnel, so on a laptop the confirm call from the browser is the main path.
 
 Phone OTP codes are printed in the backend console.
+
+To get the admin dashboard, set `ADMIN_EMAILS` in the root `.env` (backend), restart the backend, then register with that email. Theatre admins are made from `/admin/manage`.
 
 Google sign-in (optional):
 

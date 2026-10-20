@@ -89,7 +89,7 @@ frontend/src/
 - Public data (movies, shows) is fetched by the browser from `NEXT_PUBLIC_API_URL` (see `frontend/.env.example`).
 - Login and anything that needs a token go through Next route handlers in `app/api/`. The JWT lives in an httpOnly cookie (`bms_token`) and never reaches browser JavaScript. The backend URL for these is `API_URL` (server only).
 - Google sign-in uses `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, the same ID as the backend `GOOGLE_CLIENT_ID`. It is a public ID, not a secret.
-- Server-only helpers live in `lib/server/`. `proxy.ts` sends signed-out users from `/bookings`, `/shows/*`, `/alerts`, `/friends`, `/polls/*`, `/planner`, and `/shares` to `/login`.
+- Server-only helpers live in `lib/server/`. `proxy.ts` sends signed-out users from `/bookings`, `/shows/*`, `/alerts`, `/friends`, `/polls/*`, `/planner`, `/shares`, and `/admin/*` to `/login`. Admin pages also check the role in the UI, but the real check is the backend `@PreAuthorize`. The browser reaches admin APIs only through `app/api/admin/[...path]`, which allows a fixed list of paths.
 - Keep files small (about 200 lines). One file, one job.
 
 ## Docker rules
