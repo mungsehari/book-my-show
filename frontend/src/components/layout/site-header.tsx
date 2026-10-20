@@ -13,7 +13,7 @@ export function SiteHeader() {
             <TicketIcon className="size-5" />
           </span>
           <span className="text-lg font-extrabold tracking-tight">
-            book<span className="text-primary">my</span>show
+            cine<span className="text-primary">bee</span>
           </span>
         </Link>
         <div className="flex items-center gap-2">

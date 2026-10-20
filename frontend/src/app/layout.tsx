@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Book My Show",
-  description: "Book movie tickets near you.",
+  title: "Cinebee",
+  description: "Book movie tickets near you with Cinebee.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

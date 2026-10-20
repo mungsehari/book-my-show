@@ -1,4 +1,4 @@
-# Book My Show
+# Cinebee
 
 A movie and event ticket booking app.
 

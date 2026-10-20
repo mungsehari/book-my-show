@@ -75,7 +75,7 @@ export async function payWithRazorpay(input: PayInput): Promise<RazorpaySuccess>
       amount: input.amountInPaise,
       currency: input.currency,
       order_id: input.orderId,
-      name: "Book My Show",
+      name: "Cinebee",
       description: input.description,
       prefill: input.prefill,
       theme: { color: "#e11d48" },

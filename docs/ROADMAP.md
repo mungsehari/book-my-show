@@ -1,6 +1,6 @@
 # Roadmap
 
-Features planned for Book My Show, grouped in phases.
+Features planned for Cinebee, grouped in phases.
 
 - Build phases in order. Each phase needs its own plan and approval.
 - Each feature lists what it does and the main technical challenge.
