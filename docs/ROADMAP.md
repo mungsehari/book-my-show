@@ -41,7 +41,7 @@ Each step is one small change with its own plan and approval.
 | 1.8 | Booking and test payment with webhook (Razorpay test mode) | Razorpay test keys in `.env` | Done (no SDK; expiry job, cancel, and refunds added in batch 2) |
 | 1.9 | Ticket with signed QR | 1.8 | Done (signed ticket code, one-time check-in; frontend draws the QR) |
 | 1.10 | Booking history | 1.8 | Done (upcoming and past, paged) |
-| 1.11 | Next.js frontend | Network unlock | Planned |
+| 1.11 | Next.js frontend | Network unlock | Partial (F1 done: scaffold, shadcn, home, movie page. F2 done: login, My bookings list. F3 done: seat map and seat hold. F4 done: Razorpay payment, QR ticket, cancel. Google button done. F5 done: mood search, reviews. F6 done: waitlist, price alerts. F7 done: friends, activity, privacy. F8 done: group polls. F9a done: planner, gift, resale. F9b done: split payment. The frontend stages F1 to F9 are all built; cancel, gift, and resale of split bookings are not supported by the backend yet) |
 
 Clean-up after 1.1: once every show has a movie, make `movie_id` NOT NULL and drop `movie_name`. The user approves and runs that migration. Still open. (Separately, V11 replaced the old `uq_shows_slot` with one show per screen slot, approved by the user.)
 
