@@ -34,6 +34,11 @@ public class CinemaService {
                 .toList();
     }
 
+    /** Used by admin stats: every cinema in the system. */
+    public List<Long> listAllIds() {
+        return cinemaRepository.findAll().stream().map(Cinema::getId).toList();
+    }
+
     public CinemaResponse getCinema(long cinemaId) {
         return cinemaRepository
                 .findById(cinemaId)

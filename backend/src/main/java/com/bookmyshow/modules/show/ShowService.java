@@ -17,6 +17,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -108,6 +109,17 @@ public class ShowService {
                 .filter(show -> show.getScreenId() != null)
                 .filter(show -> LocalDateTime.of(show.getShowDate(), show.getStartTime())
                         .isAfter(now))
+                .map(ShowResponse::from)
+                .toList();
+    }
+
+    /** Used by admin stats. Every show in the given cinemas on a date, including ones already started, by time. */
+    public List<ShowResponse> listInCinemasOnDate(Collection<Long> cinemaIds, LocalDate date) {
+        if (cinemaIds.isEmpty()) {
+            return List.of();
+        }
+        return showRepository.findByCinemaIdInAndShowDateOrderByStartTimeAsc(cinemaIds, date).stream()
+                .filter(show -> show.getScreenId() != null)
                 .map(ShowResponse::from)
                 .toList();
     }

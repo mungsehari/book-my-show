@@ -72,6 +72,11 @@ Cancel, refund, resale, waitlist:
 |---|---|
 | `POST /api/v1/bookings/{bookingId}/cancel` | Cancel with a full refund, up to 2 hours before the show. Freed seats go to the waitlist first. |
 | `POST /api/v1/admin/bookings/{bookingId}/refund` | ADMIN. Refund a `NEEDS_REFUND` booking. |
+| `GET /api/v1/admin/stats/summary?days=7` | Bookings, tickets, revenue, average ticket price, cancellations, pending refunds. ADMIN sees every cinema, a theatre admin only their own. `days` is 1 to 90, today included. |
+| `GET /api/v1/admin/stats/daily?days=7` | Sales per day, oldest first. Quiet days show zeros. |
+| `GET /api/v1/admin/stats/top-movies?days=7&limit=5` | Movies with the most revenue. |
+| `GET /api/v1/admin/stats/occupancy?date=` | How full each show is on a date (today by default). |
+| `GET /api/v1/admin/bookings?status=&page=&size=` | All bookings in your cinemas, newest first. Filter by status such as `NEEDS_REFUND`. |
 | `GET /api/v1/shows/{showId}/resale` | Resale tickets for a show, at face value |
 | `POST /api/v1/bookings/{bookingId}/resale` | Offer your whole ticket for resale (and `/resale/cancel` to stop) |
 | `POST /api/v1/resale/{bookingId}/checkout` | Buy a resale ticket at the price the owner paid. Confirm with `/bookings/{id}/confirm`. The owner is refunded in full. |
@@ -190,6 +195,7 @@ Then open http://localhost:3000. Add `API_URL=http://localhost:8081` to `fronten
 | F2 | Login (email, phone OTP, register), account menu, My bookings (upcoming and past) |
 | F3 | Seat map (live, refreshed every 5 seconds), seat selection, 10 minute seat hold with countdown |
 | F4 | Razorpay test payment, booking confirm, QR ticket page, cancel |
+| A2 | Dashboard numbers on `/admin`: animated stat cards, revenue chart, top movies, show occupancy, refunds waiting, recent bookings (7, 30 or 90 days) |
 | A1 | Admin dashboard at `/admin`: add movie, build screen (live seat preview), add show (3 step wizard), scan ticket, food and parking, seat view photos, make theatre admin, refund |
 | F9b | Split payment: "Split with friends" on the seat hold, pay your share, `/shares` page for shares friends sent you |
 | F9a | Weekend planner (`/planner`), gift a ticket, resell at face value, buy resale tickets on the seat page |

@@ -160,6 +160,36 @@
   }
 }
 
+@keyframes draw-line {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Use with pathLength="1" on the path. */
+.animate-draw {
+  stroke-dasharray: 1;
+  animation: draw-line 1.2s ease-out both;
+}
+
+.animate-grow-x {
+  transform-origin: left;
+  animation: grow-x 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+
 .animate-confetti {
   animation: confetti-fall 1.8s ease-in both;
   animation-delay: var(--delay, 0ms);
@@ -182,6 +212,8 @@
   .animate-fade-up,
   .animate-float,
   .animate-confetti,
+  .animate-draw,
+  .animate-grow-x,
   .animate-pop-in {
     animation: none;
   }

@@ -6,6 +6,7 @@ import com.bookmyshow.modules.cinema.CinemaTypes.CinemaAdminResponse;
 import com.bookmyshow.modules.user.UserService;
 import com.bookmyshow.security.CurrentUser;
 import java.time.Clock;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,19 @@ public class CinemaAccessService {
         userService.grantTheatreAdmin(userId);
         CinemaAdmin saved = cinemaAdminRepository.save(new CinemaAdmin(userId, cinemaId, clock.instant()));
         return CinemaAdminResponse.from(saved);
+    }
+
+    /** The cinemas this admin may see numbers for. Admins get all of them. Anyone else is refused. */
+    public List<Long> managedCinemaIds(CurrentUser user) {
+        if (user.isAdmin()) {
+            return cinemaService.listAllIds();
+        }
+        if (user.isTheatreAdmin()) {
+            return cinemaAdminRepository.findByUserId(user.id()).stream()
+                    .map(CinemaAdmin::getCinemaId)
+                    .toList();
+        }
+        throw new ForbiddenException("Admins only");
     }
 
     /** Used by other modules before changing anything in a cinema. 404 if the cinema is missing, 403 if not allowed. */

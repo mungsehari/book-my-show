@@ -40,6 +40,19 @@ interface BookingRepository extends JpaRepository<Booking, Long> {
     Page<Booking> findByUserIdAndShowDateLessThanAndStatusIn(
             Long userId, LocalDate before, Collection<String> statuses, Pageable pageable);
 
+    /** Admin stats: sales confirmed since a moment, in the given cinemas. */
+    List<Booking> findByStatusAndConfirmedAtGreaterThanEqualAndCinemaIdIn(
+            String status, Instant from, Collection<Long> cinemaIds);
+
+    long countByStatusAndCinemaIdIn(String status, Collection<Long> cinemaIds);
+
+    long countByStatusAndCreatedAtGreaterThanEqualAndCinemaIdIn(
+            String status, Instant from, Collection<Long> cinemaIds);
+
+    Page<Booking> findByCinemaIdIn(Collection<Long> cinemaIds, Pageable pageable);
+
+    Page<Booking> findByStatusAndCinemaIdIn(String status, Collection<Long> cinemaIds, Pageable pageable);
+
     /**
      * Locks the booking row until the transaction ends, so the confirm call and the webhook cannot both apply the
      * same payment.

@@ -1,14 +1,34 @@
-import { apiGet, appPost, type ListResponse } from "@/lib/api";
+import { apiGet, appGet, appPost, type ListResponse, type PageResponse } from "@/lib/api";
+import type { Booking } from "@/modules/booking/types";
 import type {
   CheckedInTicket,
+  DailyStats,
   MovieInput,
+  Occupancy,
   PlaceInput,
+  Summary,
+  TopMovies,
   ScreenInput,
   ScreenLayout,
   ScreenSummary,
   ShowInput,
   ViewInput,
 } from "@/modules/admin/types";
+
+export const fetchSummary = (days: number) =>
+  appGet<Summary>("/api/admin/stats/summary", { days });
+
+export const fetchDaily = (days: number) =>
+  appGet<DailyStats>("/api/admin/stats/daily", { days });
+
+export const fetchTopMovies = (days: number) =>
+  appGet<TopMovies>("/api/admin/stats/top-movies", { days, limit: 5 });
+
+export const fetchOccupancy = (date: string) =>
+  appGet<Occupancy>("/api/admin/stats/occupancy", { date });
+
+export const fetchAdminBookings = (status: string | null, size: number) =>
+  appGet<PageResponse<Booking>>("/api/admin/bookings", { status, size });
 
 export const fetchScreens = (cinemaId: number) =>
   apiGet<ListResponse<ScreenSummary>>(`/cinemas/${cinemaId}/screens`);

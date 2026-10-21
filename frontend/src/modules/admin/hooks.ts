@@ -7,8 +7,13 @@ import {
   addView,
   assignTheatreAdmin,
   checkIn,
+  fetchAdminBookings,
+  fetchDaily,
   fetchLayout,
+  fetchOccupancy,
   fetchScreens,
+  fetchSummary,
+  fetchTopMovies,
   refundBooking,
 } from "@/modules/admin/api";
 import type { ShowInput } from "@/modules/admin/types";
@@ -24,6 +29,28 @@ export function useAdminRole() {
     canManage: !!user && ADMIN_ROLES.includes(user.role),
   };
 }
+
+/** Dashboard numbers. They are cheap to read, so refresh them every minute. */
+const LIVE = { staleTime: 30_000, refetchInterval: 60_000 };
+
+export const useSummary = (days: number) =>
+  useQuery({ queryKey: ["admin", "summary", days], queryFn: () => fetchSummary(days), ...LIVE });
+
+export const useDaily = (days: number) =>
+  useQuery({ queryKey: ["admin", "daily", days], queryFn: () => fetchDaily(days), ...LIVE });
+
+export const useTopMovies = (days: number) =>
+  useQuery({ queryKey: ["admin", "top", days], queryFn: () => fetchTopMovies(days), ...LIVE });
+
+export const useOccupancy = (date: string) =>
+  useQuery({ queryKey: ["admin", "occupancy", date], queryFn: () => fetchOccupancy(date), ...LIVE });
+
+export const useAdminBookings = (status: string | null, size = 10) =>
+  useQuery({
+    queryKey: ["admin", "bookings", status, size],
+    queryFn: () => fetchAdminBookings(status, size),
+    ...LIVE,
+  });
 
 export const useScreens = (cinemaId: number | null) =>
   useQuery({
@@ -84,4 +111,10 @@ export const useAssignAdmin = () =>
       assignTheatreAdmin(input.cinemaId, input.userId),
   });
 
-export const useRefund = () => useMutation({ mutationFn: refundBooking });
+export function useRefund() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: refundBooking,
+    onSuccess: () => client.invalidateQueries({ queryKey: ["admin"] }),
+  });
+}

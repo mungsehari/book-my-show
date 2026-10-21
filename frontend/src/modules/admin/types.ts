@@ -77,4 +77,42 @@ export type CheckedInTicket = {
   seats: string[];
 };
 
+export type Summary = {
+  days: number;
+  bookings: number;
+  ticketsSold: number;
+  revenue: number;
+  averageTicketPrice: number;
+  cancelled: number;
+  refundsPending: number;
+};
+
+export type DailyPoint = { date: string; bookings: number; tickets: number; revenue: number };
+
+export type DailyStats = { days: number; points: DailyPoint[] };
+
+export type TopMovie = { movieName: string; tickets: number; revenue: number };
+
+export type TopMovies = { days: number; items: TopMovie[] };
+
+export type CrowdLevel = "LOW" | "MEDIUM" | "HIGH" | "HOUSEFULL";
+
+export type ShowOccupancy = {
+  showId: number;
+  cinemaId: number;
+  movieName: string | null;
+  showDate: string;
+  startTime: string;
+  totalSeats: number;
+  sold: number;
+  held: number;
+  percentFull: number;
+  level: CrowdLevel;
+};
+
+export type Occupancy = { date: string; items: ShowOccupancy[] };
+
+export const RANGES = [7, 30, 90] as const;
+export type Range = (typeof RANGES)[number];
+
 export const ADMIN_ROLES = ["ADMIN", "THEATRE_ADMIN"];

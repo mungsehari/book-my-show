@@ -31,14 +31,26 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { isLoading, isAdmin, canManage } = useAdminRole();
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-3xl" />;
+  // The page is always rendered, only hidden until the role is known. Next needs the
+  // segment to render, and the real check is on the backend.
+  if (isLoading) {
+    return (
+      <>
+        <Skeleton className="h-96 w-full rounded-3xl" />
+        <div hidden>{children}</div>
+      </>
+    );
+  }
   if (!canManage) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed py-20 text-center text-muted-foreground">
-        <LockIcon className="size-10" />
-        <p className="font-medium text-foreground">Admins only</p>
-        <p className="text-sm">Your account does not have access to this area.</p>
-      </div>
+      <>
+        <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed py-20 text-center text-muted-foreground">
+          <LockIcon className="size-10" />
+          <p className="font-medium text-foreground">Admins only</p>
+          <p className="text-sm">Your account does not have access to this area.</p>
+        </div>
+        <div hidden>{children}</div>
+      </>
     );
   }
 

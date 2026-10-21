@@ -95,6 +95,9 @@ public final class BookingTypes {
     public record ResaleListing(
             Long bookingId, Long showId, List<String> seats, BigDecimal price, String currency, boolean onHold) {}
 
+    /** One confirmed sale, for admin stats. tickets is the number of seats in the booking. */
+    public record SaleFact(Instant confirmedAt, BigDecimal amount, Long movieId, String movieName, int tickets) {}
+
     /** Used by friends activity: who watched a movie, and who has a ticket for a show not started yet. */
     public record MovieAudience(Set<Long> watched, Set<Long> going) {}
 
